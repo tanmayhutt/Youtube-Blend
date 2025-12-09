@@ -31,10 +31,6 @@ youtube-blend/
 - **Authentication:** Google OAuth 2.0
 - **Hosting:** Render (free tier)
 
-## Setup
-
-See `SETUP_GUIDE.md` for detailed setup instructions.
-
 ## Quick Start
 
 ### Backend
@@ -51,23 +47,10 @@ npm install
 npm run dev
 ```
 
-## Deployment
-
-Both services are deployed separately on Render:
-- Backend: Configured as Web Service
-- Frontend: Configured as Web Service (for SPA routing)
-
-See `SETUP_GUIDE.md` for deployment details.
-
 ## Features
 
-- Google OAuth authentication
 - YouTube data fetching (subscriptions, videos, playlists)
 - Comparison algorithm (Jaccard similarity)
 - Shareable comparison links
 - Real-time compatibility scores
-
-## License
-
-MIT
 
