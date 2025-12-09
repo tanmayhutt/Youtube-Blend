@@ -1,0 +1,6 @@
+[submodule "youtube-blend-backend"]
+	path = youtube-blend-backend
+	url = https://github.com/tanmayhutt/youtube-blend-backend
+[submodule "youtube-blend-frontend"]
+	path = youtube-blend-frontend
+	url = https://github.com/tanmayhutt/youtube-blend-frontend
