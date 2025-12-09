@@ -1,6 +1,6 @@
 # YouTube Blend
 
-Compare your YouTube taste with friends and discover your compatibility score.
+Compare your YouTube taste with friends and discover your compatibility score now ==> https://blend-youtube.onrender.com
 
 ## Project Structure
 
