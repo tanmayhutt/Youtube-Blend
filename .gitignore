@@ -5,6 +5,14 @@
 .env.local
 .env.*.local
 
+# Backend env files
+backend/.env
+backend/.env.local
+
+# Frontend env files
+frontend/.env
+frontend/.env.local
+
 # OS files
 .DS_Store
 Thumbs.db
@@ -59,4 +67,3 @@ clean_json.py
 *.tmp
 *.temp
 .cache/
-

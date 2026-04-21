@@ -1,0 +1,24 @@
+# Sensitive files (keep these local)
+credentials.json
+token1.json
+token2.json
+user1.json
+user2.json
+.env
+clean_json.py
+payload.json
+
+# Python cache and virtual environment (auto-generated, no need in repo)
+__pycache__/
+*.pyc
+venv/
+*.py[cod]
+
+# OS-generated files (misc junk)
+.DS_Store
+*.log
+
+# Build artifacts (if you add these later)
+dist/
+build/
+*.egg-info/
