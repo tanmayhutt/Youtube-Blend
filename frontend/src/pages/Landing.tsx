@@ -141,8 +141,6 @@ const Landing = () => {
   );
 };
 
-};
-
 const FeatureCard = ({
   icon: Icon,
   title,
