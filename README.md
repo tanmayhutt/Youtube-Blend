@@ -57,13 +57,13 @@ youtube-blend/
 
 ## Security Features
 
-- ✅ Rate limiting (20 req/min per IP)
-- ✅ CSRF tokens on all comparison links
-- ✅ XSS prevention (JSON-safe escaping)
-- ✅ Secure random codes (128-bit entropy)
-- ✅ 2-hour link expiration
-- ✅ Read-only YouTube API access
-- ✅ JWT authentication with expiration
+- Rate limiting (20 req/min per IP)
+- CSRF tokens on all comparison links
+- XSS prevention (JSON-safe escaping)
+- Secure random codes (128-bit entropy)
+- 2-hour link expiration
+- Read-only YouTube API access
+- JWT authentication with expiration
 
 ---
 
