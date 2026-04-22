@@ -7,6 +7,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChannelCard } from "@/components/ChannelCard";
 import { VideoCard } from "@/components/VideoCard";
 import { Badge } from "@/components/ui/badge";
+import { FloatingChannels } from "@/components/FloatingChannels";
+import { GenrePieChart } from "@/components/GenrePieChart";
+import { MusicShowcase } from "@/components/MusicShowcase";
 import { Youtube, Link as LinkIcon, LogOut, Loader2, Copy, Check, TrendingUp, Video, Music, List } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { authClient, clearTokens, isAuthenticated, saveTokens } from "@/lib/auth";
@@ -201,143 +204,123 @@ const Dashboard = () => {
 
         <Separator className="my-8" />
 
-        {/* User Data with Tabs */}
-        <div className="animate-fade-in">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold mb-2">Your YouTube Universe</h2>
-            <p className="text-muted-foreground">Browse your subscriptions, videos, and more</p>
+        {/* User Data with Fun Components */}
+        <div className="animate-fade-in space-y-8">
+          <div className="text-center">
+            <h2 className="text-4xl font-bold mb-2 bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent">
+              Your YouTube Universe
+            </h2>
+            <p className="text-muted-foreground">Explore your viewing habits in a fun way</p>
           </div>
 
           {userData && (
-            <Tabs defaultValue="subscriptions" className="w-full">
-              <TabsList className="grid w-full grid-cols-4 md:grid-cols-5 mb-8">
-                <TabsTrigger value="subscriptions" className="flex items-center gap-1 text-xs md:text-sm">
-                  <TrendingUp className="w-4 h-4" />
-                  <span className="hidden sm:inline">Channels</span>
-                </TabsTrigger>
-                <TabsTrigger value="videos" className="flex items-center gap-1 text-xs md:text-sm">
-                  <Video className="w-4 h-4" />
-                  <span className="hidden sm:inline">Videos</span>
-                </TabsTrigger>
-                <TabsTrigger value="music" className="flex items-center gap-1 text-xs md:text-sm">
-                  <Music className="w-4 h-4" />
-                  <span className="hidden sm:inline">Music</span>
-                </TabsTrigger>
-                <TabsTrigger value="playlists" className="flex items-center gap-1 text-xs md:text-sm">
-                  <List className="w-4 h-4" />
-                  <span className="hidden sm:inline">Playlists</span>
-                </TabsTrigger>
-                <TabsTrigger value="genres" className="flex items-center gap-1 text-xs md:text-sm">
-                  <Music className="w-4 h-4" />
-                  <span className="hidden sm:inline">Genres</span>
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="subscriptions" className="space-y-6">
+            <>
+              {/* Music Showcase - Emphasized */}
+              {userData.music_listened && userData.music_listened.length > 0 && (
                 <div>
-                  <div className="flex items-center gap-2 mb-4">
-                    <h3 className="text-xl font-semibold">Your Subscriptions</h3>
-                    <Badge variant="secondary">{userData.subscriptions?.length || 0}</Badge>
-                  </div>
-                  {userData.subscriptions && userData.subscriptions.length > 0 ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                      {userData.subscriptions.map((sub: any, index: number) => (
-                        <ChannelCard key={index} title={sub.title} logoUrl={sub.logo_url} channelId={sub.channel_id} />
-                      ))}
-                    </div>
-                  ) : (
-                    <Card className="p-8 text-center">
-                      <p className="text-muted-foreground">No subscriptions found</p>
-                    </Card>
-                  )}
+                  <MusicShowcase musicTracks={userData.music_listened} />
                 </div>
-              </TabsContent>
+              )}
 
-              <TabsContent value="videos" className="space-y-6">
-                <div>
-                  <div className="flex items-center gap-2 mb-4">
-                    <h3 className="text-xl font-semibold">Your Saved Videos</h3>
-                    <Badge variant="secondary">{userData.saved_videos?.length || 0}</Badge>
-                  </div>
-                  {userData.saved_videos && userData.saved_videos.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                      {userData.saved_videos.map((video: any, index: number) => (
-                        <VideoCard key={index} title={video.title} thumbnailUrl={video.thumbnail_url} videoId={video.video_id} />
-                      ))}
-                    </div>
-                  ) : (
-                    <Card className="p-8 text-center">
-                      <p className="text-muted-foreground">No saved videos found</p>
-                    </Card>
-                  )}
-                </div>
-              </TabsContent>
+              {/* Floating Channels Section */}
+              <div className="grid grid-cols-1 gap-8">
+                {userData.subscriptions && userData.subscriptions.length > 0 && (
+                  <FloatingChannels channels={userData.subscriptions} title="Your Favorite Channels" />
+                )}
+              </div>
 
-              <TabsContent value="music" className="space-y-6">
-                <div>
-                  <div className="flex items-center gap-2 mb-4">
-                    <h3 className="text-xl font-semibold">Your Music</h3>
-                    <Badge variant="secondary">{userData.music_listened?.length || 0}</Badge>
-                  </div>
-                  {userData.music_listened && userData.music_listened.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                      {userData.music_listened.map((music: any, index: number) => (
-                        <VideoCard key={index} title={music.title} thumbnailUrl={music.thumbnail_url} videoId={music.video_id} />
-                      ))}
-                    </div>
-                  ) : (
-                    <Card className="p-8 text-center">
-                      <p className="text-muted-foreground">No music found</p>
-                    </Card>
-                  )}
-                </div>
-              </TabsContent>
+              {/* Genre Analysis */}
+              <div className="grid grid-cols-1 gap-8">
+                {userData.subscription_genres && userData.subscription_genres.length > 0 && (
+                  <GenrePieChart genres={userData.subscription_genres} title="Channel Genre Breakdown" />
+                )}
+              </div>
 
-              <TabsContent value="playlists" className="space-y-6">
-                <div>
-                  <div className="flex items-center gap-2 mb-4">
-                    <h3 className="text-xl font-semibold">Your Playlists</h3>
-                    <Badge variant="secondary">{userData.playlists?.length || 0}</Badge>
-                  </div>
-                  {userData.playlists && userData.playlists.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                      {userData.playlists.map((playlist: any, index: number) => (
-                        <VideoCard key={index} title={playlist.title} thumbnailUrl={playlist.thumbnail_url} playlistId={playlist.playlist_id} />
-                      ))}
-                    </div>
-                  ) : (
-                    <Card className="p-8 text-center">
-                      <p className="text-muted-foreground">No playlists found</p>
-                    </Card>
-                  )}
-                </div>
-              </TabsContent>
+              {userData.video_genres && userData.video_genres.length > 0 && (
+                <GenrePieChart genres={userData.video_genres} title="Video Genre Analysis" />
+              )}
 
-              <TabsContent value="genres" className="space-y-6">
-                <div className="space-y-6">
-                  {userData.subscription_genres && userData.subscription_genres.length > 0 && (
+              {/* Tabs for detailed browsing */}
+              <div>
+                <Tabs defaultValue="videos" className="w-full">
+                  <TabsList className="grid w-full grid-cols-4 md:grid-cols-5 mb-8">
+                    <TabsTrigger value="videos" className="flex items-center gap-1 text-xs md:text-sm">
+                      <Video className="w-4 h-4" />
+                      <span className="hidden sm:inline">Videos</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="playlists" className="flex items-center gap-1 text-xs md:text-sm">
+                      <List className="w-4 h-4" />
+                      <span className="hidden sm:inline">Playlists</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="stats" className="flex items-center gap-1 text-xs md:text-sm">
+                      <TrendingUp className="w-4 h-4" />
+                      <span className="hidden sm:inline">Stats</span>
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="videos" className="space-y-6">
                     <div>
-                      <h3 className="text-lg font-semibold mb-4">Channel Genres</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {userData.subscription_genres.map((genre: string, index: number) => (
-                          <Badge key={index} variant="outline">{genre}</Badge>
-                        ))}
+                      <div className="flex items-center gap-2 mb-4">
+                        <h3 className="text-xl font-semibold">Your Saved Videos</h3>
+                        <Badge variant="secondary">{userData.saved_videos?.length || 0}</Badge>
                       </div>
+                      {userData.saved_videos && userData.saved_videos.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                          {userData.saved_videos.map((video: any, index: number) => (
+                            <VideoCard key={index} title={video.title} thumbnailUrl={video.thumbnail_url} videoId={video.video_id} />
+                          ))}
+                        </div>
+                      ) : (
+                        <Card className="p-8 text-center">
+                          <p className="text-muted-foreground">No saved videos found</p>
+                        </Card>
+                      )}
                     </div>
-                  )}
-                  {userData.video_genres && userData.video_genres.length > 0 && (
+                  </TabsContent>
+
+                  <TabsContent value="playlists" className="space-y-6">
                     <div>
-                      <h3 className="text-lg font-semibold mb-4">Video Genres</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {userData.video_genres.map((genre: string, index: number) => (
-                          <Badge key={index} variant="outline">{genre}</Badge>
-                        ))}
+                      <div className="flex items-center gap-2 mb-4">
+                        <h3 className="text-xl font-semibold">Your Playlists</h3>
+                        <Badge variant="secondary">{userData.playlists?.length || 0}</Badge>
                       </div>
+                      {userData.playlists && userData.playlists.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                          {userData.playlists.map((playlist: any, index: number) => (
+                            <VideoCard key={index} title={playlist.title} thumbnailUrl={playlist.thumbnail_url} playlistId={playlist.playlist_id} />
+                          ))}
+                        </div>
+                      ) : (
+                        <Card className="p-8 text-center">
+                          <p className="text-muted-foreground">No playlists found</p>
+                        </Card>
+                      )}
                     </div>
-                  )}
-                </div>
-              </TabsContent>
-            </Tabs>
+                  </TabsContent>
+
+                  <TabsContent value="stats" className="space-y-6">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <Card className="p-6 text-center bg-gradient-to-br from-red-500/10 to-orange-500/10 border-red-500/20">
+                        <div className="text-3xl font-bold text-red-600">{userData.subscriptions?.length || 0}</div>
+                        <p className="text-xs text-muted-foreground mt-2">Subscriptions</p>
+                      </Card>
+                      <Card className="p-6 text-center bg-gradient-to-br from-purple-500/10 to-pink-500/10 border-purple-500/20">
+                        <div className="text-3xl font-bold text-purple-600">{userData.music_listened?.length || 0}</div>
+                        <p className="text-xs text-muted-foreground mt-2">Music Tracks</p>
+                      </Card>
+                      <Card className="p-6 text-center bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border-blue-500/20">
+                        <div className="text-3xl font-bold text-blue-600">{userData.saved_videos?.length || 0}</div>
+                        <p className="text-xs text-muted-foreground mt-2">Saved Videos</p>
+                      </Card>
+                      <Card className="p-6 text-center bg-gradient-to-br from-green-500/10 to-emerald-500/10 border-green-500/20">
+                        <div className="text-3xl font-bold text-green-600">{userData.playlists?.length || 0}</div>
+                        <p className="text-xs text-muted-foreground mt-2">Playlists</p>
+                      </Card>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </div>
+            </>
           )}
         </div>
       </main>

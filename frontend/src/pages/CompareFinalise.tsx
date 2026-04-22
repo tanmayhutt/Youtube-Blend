@@ -9,6 +9,9 @@ import { ChannelCard } from "@/components/ChannelCard";
 import { VideoCard } from "@/components/VideoCard";
 import { Badge } from "@/components/ui/badge";
 import { ThreeJsVisualization } from "@/components/ThreeJsVisualization";
+import { FloatingChannels } from "@/components/FloatingChannels";
+import { GenrePieChart } from "@/components/GenrePieChart";
+import { MusicShowcase } from "@/components/MusicShowcase";
 import { Youtube, TrendingUp, Music, Video, Home, Loader2, List } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { authClient, saveTokens, clearTokens, isAuthenticated } from "@/lib/auth";
@@ -210,24 +213,39 @@ const CompareFinalise = () => {
               </div>
             </TabsContent>
 
-            <TabsContent value="common">
+            <TabsContent value="common" className="space-y-8">
+              <h2 className="text-3xl font-bold text-foreground mb-2">What You Both Love</h2>
+
               {(comparisonData.common_subscriptions?.length > 0 ||
                 comparisonData.common_saved_videos?.length > 0 ||
                 comparisonData.common_music_listened?.length > 0) ? (
-                <BlendResults
-                  data={{
-                    subscriptions: comparisonData.common_subscriptions,
-                    saved_videos: comparisonData.common_saved_videos,
-                    music_listened: comparisonData.common_music_listened,
-                    subscription_genres: comparisonData.common_subscription_genres,
-                    video_genres: comparisonData.common_video_genres,
-                  }}
-                  title="What You Both Love"
-                />
+                <div className="space-y-8">
+                  {/* Emphasize Common Music */}
+                  {comparisonData.common_music_listened && comparisonData.common_music_listened.length > 0 && (
+                    <MusicShowcase musicTracks={comparisonData.common_music_listened} />
+                  )}
+
+                  {/* Common Floating Channels */}
+                  {comparisonData.common_subscriptions && comparisonData.common_subscriptions.length > 0 && (
+                    <FloatingChannels channels={comparisonData.common_subscriptions} title="Common Favorite Channels" />
+                  )}
+
+                  {/* Common Videos */}
+                  {comparisonData.common_saved_videos && comparisonData.common_saved_videos.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4">Videos You Both Saved</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {comparisonData.common_saved_videos.map((video: any, index: number) => (
+                          <VideoCard key={index} title={video.title} thumbnailUrl={video.thumbnail_url} videoId={video.video_id} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               ) : (
                 <Card className="p-12 text-center">
                   <Music className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-2xl font-bold mb-2">No Common Content</p>
+                  <p className="text-2xl font-bold mb-2">No Common Content Yet</p>
                   <p className="text-muted-foreground text-sm">
                     This is your chance to introduce each other to amazing new content
                   </p>
@@ -334,54 +352,20 @@ const CompareFinalise = () => {
               )}
             </TabsContent>
 
-            <TabsContent value="genres" className="space-y-6">
+            <TabsContent value="genres" className="space-y-8">
               <h2 className="text-2xl font-bold text-foreground">Genres & Categories</h2>
               <div className="space-y-8">
-                {(comparisonData.subscription_genres?.length > 0 || comparisonData.user_2_subscription_genres?.length > 0) && (
-                  <div>
-                    <h3 className="text-lg font-semibold text-foreground mb-4">Channel Genres</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      <div>
-                        <p className="text-sm font-medium text-muted-foreground mb-3">Your Genres</p>
-                        <div className="flex flex-wrap gap-2">
-                          {comparisonData.subscription_genres?.map((genre: string, index: number) => (
-                            <Badge key={index} variant="outline">{genre}</Badge>
-                          ))}
-                        </div>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-muted-foreground mb-3">Their Genres</p>
-                        <div className="flex flex-wrap gap-2">
-                          {comparisonData.user_2_subscription_genres?.map((genre: string, index: number) => (
-                            <Badge key={index} variant="outline">{genre}</Badge>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                {comparisonData.subscription_genres?.length > 0 && (
+                  <GenrePieChart genres={comparisonData.subscription_genres} title="Your Channel Genres" />
                 )}
-                {(comparisonData.video_genres?.length > 0 || comparisonData.user_2_video_genres?.length > 0) && (
-                  <div>
-                    <h3 className="text-lg font-semibold text-foreground mb-4">Video Genres</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      <div>
-                        <p className="text-sm font-medium text-muted-foreground mb-3">Your Genres</p>
-                        <div className="flex flex-wrap gap-2">
-                          {comparisonData.video_genres?.map((genre: string, index: number) => (
-                            <Badge key={index} variant="outline">{genre}</Badge>
-                          ))}
-                        </div>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-muted-foreground mb-3">Their Genres</p>
-                        <div className="flex flex-wrap gap-2">
-                          {comparisonData.user_2_video_genres?.map((genre: string, index: number) => (
-                            <Badge key={index} variant="outline">{genre}</Badge>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                {comparisonData.user_2_subscription_genres?.length > 0 && (
+                  <GenrePieChart genres={comparisonData.user_2_subscription_genres} title="Their Channel Genres" />
+                )}
+                {comparisonData.video_genres?.length > 0 && (
+                  <GenrePieChart genres={comparisonData.video_genres} title="Your Video Genres" />
+                )}
+                {comparisonData.user_2_video_genres?.length > 0 && (
+                  <GenrePieChart genres={comparisonData.user_2_video_genres} title="Their Video Genres" />
                 )}
               </div>
             </TabsContent>
