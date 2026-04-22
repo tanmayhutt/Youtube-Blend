@@ -10,7 +10,6 @@ import { VideoCard } from "@/components/VideoCard";
 import { Badge } from "@/components/ui/badge";
 import { ThreeJsVisualization } from "@/components/ThreeJsVisualization";
 import { FloatingChannels } from "@/components/FloatingChannels";
-import { GenrePieChart } from "@/components/GenrePieChart";
 import { MusicShowcase } from "@/components/MusicShowcase";
 import { Youtube, TrendingUp, Music, Video, Home, Loader2, List } from "lucide-react";
 import { Logo } from "@/components/Logo";
@@ -353,21 +352,64 @@ const CompareFinalise = () => {
             </TabsContent>
 
             <TabsContent value="genres" className="space-y-8">
-              <h2 className="text-2xl font-bold text-foreground">Genres & Categories</h2>
-              <div className="space-y-8">
+              <h2 className="text-2xl font-bold text-foreground">Your Interests</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {comparisonData.subscription_genres?.length > 0 && (
-                  <GenrePieChart genres={comparisonData.subscription_genres} title="Your Channel Genres" />
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Your Channel Interests</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {Array.from(new Set(comparisonData.subscription_genres)).map((genre: string, index: number) => (
+                        <Badge key={index} variant="secondary" className="capitalize">
+                          {genre.replace(/_/g, " ")}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
                 )}
                 {comparisonData.user_2_subscription_genres?.length > 0 && (
-                  <GenrePieChart genres={comparisonData.user_2_subscription_genres} title="Their Channel Genres" />
-                )}
-                {comparisonData.video_genres?.length > 0 && (
-                  <GenrePieChart genres={comparisonData.video_genres} title="Your Video Genres" />
-                )}
-                {comparisonData.user_2_video_genres?.length > 0 && (
-                  <GenrePieChart genres={comparisonData.user_2_video_genres} title="Their Video Genres" />
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Their Channel Interests</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {Array.from(new Set(comparisonData.user_2_subscription_genres)).map((genre: string, index: number) => (
+                        <Badge key={index} variant="outline" className="capitalize">
+                          {genre.replace(/_/g, " ")}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
+              {(comparisonData.video_genres?.length > 0 || comparisonData.user_2_video_genres?.length > 0) && (
+                <div className="mt-6 pt-6 border-t">
+                  <h2 className="text-xl font-bold text-foreground mb-6">Video Content Interests</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {comparisonData.video_genres?.length > 0 && (
+                      <div className="space-y-3">
+                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Your Video Interests</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {Array.from(new Set(comparisonData.video_genres)).map((genre: string, index: number) => (
+                            <Badge key={index} variant="secondary" className="capitalize">
+                              {genre.replace(/_/g, " ")}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {comparisonData.user_2_video_genres?.length > 0 && (
+                      <div className="space-y-3">
+                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Their Video Interests</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {Array.from(new Set(comparisonData.user_2_video_genres)).map((genre: string, index: number) => (
+                            <Badge key={index} variant="outline" className="capitalize">
+                              {genre.replace(/_/g, " ")}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </TabsContent>
           </Tabs>
         </div>

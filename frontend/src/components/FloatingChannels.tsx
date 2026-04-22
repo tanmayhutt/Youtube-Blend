@@ -1,4 +1,3 @@
-import { useEffect, useRef } from "react";
 import { ChannelCard } from "./ChannelCard";
 
 interface FloatingChannelsProps {
@@ -7,34 +6,6 @@ interface FloatingChannelsProps {
 }
 
 export const FloatingChannels = ({ channels, title }: FloatingChannelsProps) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!containerRef.current || channels.length === 0) return;
-
-    const items = containerRef.current.querySelectorAll("[data-channel-item]");
-    const itemCount = items.length;
-    const radius = 120;
-    const centerX = containerRef.current.clientWidth / 2;
-    const centerY = 150;
-
-    items.forEach((item: any, index: number) => {
-      const angle = (index / itemCount) * Math.PI * 2;
-      const x = centerX + Math.cos(angle) * radius;
-      const y = centerY + Math.sin(angle) * radius;
-
-      (item as HTMLElement).style.setProperty("--rotate", `${angle}rad`);
-      (item as HTMLElement).style.position = "absolute";
-      (item as HTMLElement).style.left = `${x}px`;
-      (item as HTMLElement).style.top = `${y}px`;
-      (item as HTMLElement).style.transform = "translate(-50%, -50%)";
-
-      // Stagger animation
-      (item as HTMLElement).style.animation = `float 6s ease-in-out infinite`;
-      (item as HTMLElement).style.animationDelay = `${index * 0.1}s`;
-    });
-  }, [channels]);
-
   if (channels.length === 0) {
     return null;
   }
@@ -43,42 +14,30 @@ export const FloatingChannels = ({ channels, title }: FloatingChannelsProps) => 
     <div className="space-y-4">
       <h3 className="text-lg font-semibold text-foreground">{title}</h3>
       <style>{`
-        @keyframes float {
-          0%, 100% { transform: translate(-50%, -50%) translateY(0px); }
-          50% { transform: translate(-50%, -50%) translateY(-20px); }
+        @keyframes fadeInScale {
+          from { opacity: 0; transform: scale(0.95); }
+          to { opacity: 1; transform: scale(1); }
         }
-        @keyframes orbit {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
+        .channel-item {
+          animation: fadeInScale 0.5s ease-out forwards;
         }
       `}</style>
-      <div
-        ref={containerRef}
-        className="relative w-full rounded-lg border border-red-500/20 bg-gradient-to-br from-red-500/5 to-orange-500/5 p-8"
-        style={{ height: "350px", overflow: "hidden" }}
-      >
-        {channels.slice(0, 8).map((channel: any, index: number) => (
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+        {channels.slice(0, 15).map((channel: any, index: number) => (
           <div
             key={index}
-            data-channel-item
-            className="absolute transition-all duration-300 hover:scale-110"
+            className="channel-item transition-all duration-300 hover:scale-105 hover:shadow-lg"
             style={{
-              animation: `float 6s ease-in-out infinite`,
-              animationDelay: `${index * 0.1}s`,
+              animationDelay: `${index * 0.05}s`,
             }}
           >
             <ChannelCard title={channel.title} logoUrl={channel.logo_url} channelId={channel.channel_id} />
           </div>
         ))}
-
-        {/* Floating text in center */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="text-center space-y-2">
-            <p className="text-2xl font-bold text-red-600/20">{channels.length}</p>
-            <p className="text-xs text-muted-foreground/50">Channels</p>
-          </div>
-        </div>
       </div>
+      {channels.length > 15 && (
+        <p className="text-xs text-muted-foreground text-center pt-2">+{channels.length - 15} more channels</p>
+      )}
     </div>
   );
 };
