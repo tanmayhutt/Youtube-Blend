@@ -225,7 +225,7 @@ const Dashboard = () => {
                 </TabsTrigger>
                 <TabsTrigger value="playlists" className="flex items-center gap-1 text-xs md:text-sm">
                   <List className="w-4 h-4" />
-                  <span className="hidden sm:inline">Lists</span>
+                  <span className="hidden sm:inline">Playlists</span>
                 </TabsTrigger>
                 <TabsTrigger value="genres" className="flex items-center gap-1 text-xs md:text-sm">
                   <Music className="w-4 h-4" />
