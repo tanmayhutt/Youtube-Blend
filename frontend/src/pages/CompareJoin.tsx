@@ -31,8 +31,9 @@ const CompareJoin = () => {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4 max-w-md">
           <Youtube className="w-16 h-16 text-destructive mx-auto" />
-          <h1 className="text-2xl font-bold">Oops!</h1>
-          <p className="text-muted-foreground">{error}</p>
+          <h1 className="text-2xl font-bold">Invalid Link</h1>
+          <p className="text-muted-foreground text-sm">{error}</p>
+          <p className="text-xs text-muted-foreground/60 mt-4">Comparison links expire after 2 hours for security</p>
         </div>
       </div>
     );
@@ -42,7 +43,7 @@ const CompareJoin = () => {
     <div className="min-h-screen bg-background flex items-center justify-center">
       <div className="text-center space-y-4">
         <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto" />
-        <p className="text-lg text-muted-foreground">Redirecting you to login...</p>
+        <p className="text-muted-foreground">Redirecting to Google Sign-In...</p>
       </div>
     </div>
   );
