@@ -3,7 +3,7 @@
 from fastapi import FastAPI, HTTPException, Depends, Header, Request
 from fastapi.responses import RedirectResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from google_auth_oauthlib.flow import Flow
 from collections import defaultdict
 from time import time
