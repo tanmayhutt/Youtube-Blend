@@ -8,6 +8,7 @@ import { ScoreCard } from "@/components/ScoreCard";
 import { ChannelCard } from "@/components/ChannelCard";
 import { VideoCard } from "@/components/VideoCard";
 import { Badge } from "@/components/ui/badge";
+import { ThreeJsVisualization } from "@/components/ThreeJsVisualization";
 import { Youtube, TrendingUp, Music, Video, Home, Loader2, List } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { authClient, saveTokens, clearTokens, isAuthenticated } from "@/lib/auth";
@@ -146,10 +147,13 @@ const CompareFinalise = () => {
 
       <main className="container mx-auto px-4 py-12">
         <div className="animate-fade-in">
-          {/* Match Score Card */}
+          {/* Match Score Card with 3D Visualization */}
           {matchMessage && (
             <Card className="mb-12 p-8 text-center border-border/50">
               <div className="space-y-6">
+                {/* 3D Visualization */}
+                <ThreeJsVisualization score={comparisonData.scores.overall} className="mb-6" />
+
                 <div>
                   <h2 className="text-4xl font-bold text-foreground mb-2">
                     {matchMessage.text}
