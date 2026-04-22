@@ -15,7 +15,7 @@ const AuthComplete = () => {
   useEffect(() => {
     console.log("AuthComplete mounted, URL:", window.location.href);
     console.log("API_BASE:", API_BASE);
-    
+
     const code = searchParams.get("code");
     const next = searchParams.get("next");
 
@@ -65,17 +65,17 @@ const AuthComplete = () => {
   if (error) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4 text-center px-6">
-          <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center">
-            <AlertCircle className="w-8 h-8 text-destructive" />
+        <div className="flex flex-col items-center gap-4 text-center px-6 max-w-md">
+          <div className="w-14 h-14 rounded-lg bg-destructive/10 flex items-center justify-center">
+            <AlertCircle className="w-7 h-7 text-destructive" />
           </div>
           <h1 className="text-xl font-semibold text-foreground">Authentication Error</h1>
-          <p className="text-muted-foreground max-w-md">{error}</p>
+          <p className="text-sm text-muted-foreground">{error}</p>
           <button
             onClick={() => navigate("/")}
-            className="mt-4 px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+            className="mt-4 px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm"
           >
-            Back to Home
+            Return to Home
           </button>
         </div>
       </div>
@@ -86,13 +86,8 @@ const AuthComplete = () => {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="relative">
-            <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            </div>
-            <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping" />
-          </div>
-          <p className="text-lg text-muted-foreground">Completing authentication...</p>
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Completing sign-in...</p>
         </div>
       </div>
     );
