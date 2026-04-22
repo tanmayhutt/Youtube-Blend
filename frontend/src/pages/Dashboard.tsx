@@ -20,7 +20,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     console.log("Dashboard mounted. Current URL:", window.location.href);
-    
+
     // Extract tokens from URL if present (OAuth redirect)
     const urlParams = new URLSearchParams(window.location.search);
     const accessToken = urlParams.get("access_token");
@@ -105,8 +105,8 @@ const Dashboard = () => {
     clearTokens();
     navigate("/");
     toast({
-      title: "Logged Out",
-      description: "See you next time!",
+      title: "Signed Out",
+      description: "You have been successfully logged out",
     });
   };
 
@@ -115,7 +115,7 @@ const Dashboard = () => {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
           <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto" />
-          <p className="text-lg text-muted-foreground">Loading your YouTube universe...</p>
+          <p className="text-muted-foreground">Loading your profile...</p>
         </div>
       </div>
     );
@@ -127,15 +127,13 @@ const Dashboard = () => {
       <header className="border-b border-border bg-card/50 backdrop-blur sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Logo size={32} className="rounded-lg" />
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                YouTube Blend
-              </h1>
+            <div className="flex items-center gap-2">
+              <Logo size={28} className="rounded" />
+              <h1 className="text-lg font-bold text-foreground">YouTube Blend</h1>
             </div>
-            <Button variant="outline" onClick={handleLogout} className="gap-2">
+            <Button variant="outline" onClick={handleLogout} className="gap-2 text-sm">
               <LogOut className="w-4 h-4" />
-              Logout
+              Sign Out
             </Button>
           </div>
         </div>
@@ -143,29 +141,29 @@ const Dashboard = () => {
 
       <main className="container mx-auto px-4 py-12">
         {/* Action Card */}
-        <Card className="mb-12 p-8 bg-gradient-to-br from-primary/10 via-accent/5 to-background border-primary/20 animate-scale-in">
+        <Card className="mb-12 p-8 border-border/50">
           <div className="text-center space-y-6">
-            <h2 className="text-3xl font-bold">Ready to Compare?</h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Generate a shareable link and discover how your YouTube taste matches with friends
+            <h2 className="text-3xl font-bold text-foreground">Start a Comparison</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Generate a unique link to compare your YouTube preferences with friends. Share it, and get instant compatibility results.
             </p>
-            
+
             {!shareLink ? (
               <Button
                 onClick={handleGenerateLink}
                 disabled={generatingLink}
                 size="lg"
-                className="text-lg px-8 py-6 shadow-lg hover:shadow-[0_0_40px_hsl(var(--primary)/0.4)]"
+                className="text-base px-8 py-6"
               >
                 {generatingLink ? (
                   <>
                     <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Generating...
+                    Generating Link...
                   </>
                 ) : (
                   <>
                     <LinkIcon className="w-5 h-5 mr-2" />
-                    Generate Comparison Link
+                    Create Comparison Link
                   </>
                 )}
               </Button>
@@ -176,22 +174,22 @@ const Dashboard = () => {
                     type="text"
                     value={shareLink}
                     readOnly
-                    className="flex-1 px-4 py-3 rounded-lg bg-background border border-border text-sm"
+                    className="flex-1 px-4 py-3 rounded-lg bg-background border border-border text-sm font-mono"
                   />
                   <Button onClick={handleCopyLink} className="gap-2">
                     {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                    {copied ? "Copied!" : "Copy"}
+                    {copied ? "Copied" : "Copy"}
                   </Button>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Share this link with a friend. When they login, you'll both see the comparison results!
+                  Share this link with a friend. When they sign in, you'll both see your compatibility results.
                 </p>
                 <Button
                   onClick={() => setShareLink(null)}
                   variant="outline"
                   size="sm"
                 >
-                  Generate New Link
+                  Create Another Link
                 </Button>
               </div>
             )}
