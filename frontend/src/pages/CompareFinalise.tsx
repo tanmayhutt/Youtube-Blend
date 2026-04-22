@@ -5,7 +5,10 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BlendResults } from "@/components/BlendResults";
 import { ScoreCard } from "@/components/ScoreCard";
-import { Youtube, Heart, TrendingUp, Music, Video, Home, Loader2 } from "lucide-react";
+import { ChannelCard } from "@/components/ChannelCard";
+import { VideoCard } from "@/components/VideoCard";
+import { Badge } from "@/components/ui/badge";
+import { Youtube, TrendingUp, Music, Video, Home, Loader2, List } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { authClient, saveTokens, clearTokens, isAuthenticated } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -167,18 +170,30 @@ const CompareFinalise = () => {
 
           {/* Detailed Results Tabs */}
           <Tabs defaultValue="scores" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-8">
-              <TabsTrigger value="scores" className="flex items-center gap-2 text-sm">
+            <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 mb-8 overflow-x-auto">
+              <TabsTrigger value="scores" className="flex items-center gap-1 text-xs md:text-sm">
                 <TrendingUp className="w-4 h-4" />
-                Scores
+                <span className="hidden sm:inline">Scores</span>
               </TabsTrigger>
-              <TabsTrigger value="common" className="flex items-center gap-2 text-sm">
-                <Heart className="w-4 h-4" />
-                Common
+              <TabsTrigger value="common" className="flex items-center gap-1 text-xs md:text-sm">
+                <Music className="w-4 h-4" />
+                <span className="hidden sm:inline">Common</span>
               </TabsTrigger>
-              <TabsTrigger value="details" className="flex items-center gap-2 text-sm">
+              <TabsTrigger value="subscriptions" className="flex items-center gap-1 text-xs md:text-sm">
+                <TrendingUp className="w-4 h-4" />
+                <span className="hidden sm:inline">Channels</span>
+              </TabsTrigger>
+              <TabsTrigger value="videos" className="flex items-center gap-1 text-xs md:text-sm">
                 <Video className="w-4 h-4" />
-                Details
+                <span className="hidden sm:inline">Videos</span>
+              </TabsTrigger>
+              <TabsTrigger value="music" className="flex items-center gap-1 text-xs md:text-sm">
+                <Music className="w-4 h-4" />
+                <span className="hidden sm:inline">Music</span>
+              </TabsTrigger>
+              <TabsTrigger value="genres" className="flex items-center gap-1 text-xs md:text-sm">
+                <List className="w-4 h-4" />
+                <span className="hidden sm:inline">Genres</span>
               </TabsTrigger>
             </TabsList>
 
@@ -208,19 +223,163 @@ const CompareFinalise = () => {
               ) : (
                 <Card className="p-12 text-center">
                   <Music className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-2xl font-bold mb-2">No Common Content Yet!</p>
-                  <p className="text-muted-foreground">
-                    This is your chance to introduce each other to amazing new content 🎬
+                  <p className="text-2xl font-bold mb-2">No Common Content</p>
+                  <p className="text-muted-foreground text-sm">
+                    This is your chance to introduce each other to amazing new content
                   </p>
                 </Card>
               )}
             </TabsContent>
 
-            <TabsContent value="details">
-              <BlendResults
-                data={comparisonData}
-                title="Complete Comparison Details"
-              />
+            <TabsContent value="subscriptions" className="space-y-6">
+              <h2 className="text-2xl font-bold text-foreground">Subscriptions</h2>
+              {(comparisonData.subscriptions?.length > 0 || comparisonData.user_2_subscriptions?.length > 0) ? (
+                <div className="space-y-8">
+                  {comparisonData.subscriptions?.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold text-foreground mb-4">Your Subscriptions ({comparisonData.subscriptions.length})</h3>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                        {comparisonData.subscriptions.map((sub: any, index: number) => (
+                          <ChannelCard key={index} title={sub.title} logoUrl={sub.logo_url} channelId={sub.channel_id} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {comparisonData.user_2_subscriptions?.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold text-foreground mb-4">Their Subscriptions ({comparisonData.user_2_subscriptions.length})</h3>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                        {comparisonData.user_2_subscriptions.map((sub: any, index: number) => (
+                          <ChannelCard key={index} title={sub.title} logoUrl={sub.logo_url} channelId={sub.channel_id} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <Card className="p-12 text-center">
+                  <TrendingUp className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground text-sm">No subscription data available</p>
+                </Card>
+              )}
+            </TabsContent>
+
+            <TabsContent value="videos" className="space-y-6">
+              <h2 className="text-2xl font-bold text-foreground">Saved Videos</h2>
+              {(comparisonData.saved_videos?.length > 0 || comparisonData.user_2_saved_videos?.length > 0) ? (
+                <div className="space-y-8">
+                  {comparisonData.saved_videos?.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold text-foreground mb-4">Your Saved Videos ({comparisonData.saved_videos.length})</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {comparisonData.saved_videos.map((video: any, index: number) => (
+                          <VideoCard key={index} title={video.title} thumbnailUrl={video.thumbnail_url} videoId={video.video_id} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {comparisonData.user_2_saved_videos?.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold text-foreground mb-4">Their Saved Videos ({comparisonData.user_2_saved_videos.length})</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {comparisonData.user_2_saved_videos.map((video: any, index: number) => (
+                          <VideoCard key={index} title={video.title} thumbnailUrl={video.thumbnail_url} videoId={video.video_id} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <Card className="p-12 text-center">
+                  <Video className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground text-sm">No saved videos available</p>
+                </Card>
+              )}
+            </TabsContent>
+
+            <TabsContent value="music" className="space-y-6">
+              <h2 className="text-2xl font-bold text-foreground">Music</h2>
+              {(comparisonData.music_listened?.length > 0 || comparisonData.user_2_music_listened?.length > 0) ? (
+                <div className="space-y-8">
+                  {comparisonData.music_listened?.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold text-foreground mb-4">Your Music ({comparisonData.music_listened.length})</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {comparisonData.music_listened.map((music: any, index: number) => (
+                          <VideoCard key={index} title={music.title} thumbnailUrl={music.thumbnail_url} videoId={music.video_id} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {comparisonData.user_2_music_listened?.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold text-foreground mb-4">Their Music ({comparisonData.user_2_music_listened.length})</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {comparisonData.user_2_music_listened.map((music: any, index: number) => (
+                          <VideoCard key={index} title={music.title} thumbnailUrl={music.thumbnail_url} videoId={music.video_id} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <Card className="p-12 text-center">
+                  <Music className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground text-sm">No music data available</p>
+                </Card>
+              )}
+            </TabsContent>
+
+            <TabsContent value="genres" className="space-y-6">
+              <h2 className="text-2xl font-bold text-foreground">Genres & Categories</h2>
+              <div className="space-y-8">
+                {(comparisonData.subscription_genres?.length > 0 || comparisonData.user_2_subscription_genres?.length > 0) && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground mb-4">Channel Genres</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground mb-3">Your Genres</p>
+                        <div className="flex flex-wrap gap-2">
+                          {comparisonData.subscription_genres?.map((genre: string, index: number) => (
+                            <Badge key={index} variant="outline">{genre}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground mb-3">Their Genres</p>
+                        <div className="flex flex-wrap gap-2">
+                          {comparisonData.user_2_subscription_genres?.map((genre: string, index: number) => (
+                            <Badge key={index} variant="outline">{genre}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {(comparisonData.video_genres?.length > 0 || comparisonData.user_2_video_genres?.length > 0) && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground mb-4">Video Genres</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground mb-3">Your Genres</p>
+                        <div className="flex flex-wrap gap-2">
+                          {comparisonData.video_genres?.map((genre: string, index: number) => (
+                            <Badge key={index} variant="outline">{genre}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground mb-3">Their Genres</p>
+                        <div className="flex flex-wrap gap-2">
+                          {comparisonData.user_2_video_genres?.map((genre: string, index: number) => (
+                            <Badge key={index} variant="outline">{genre}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </TabsContent>
           </Tabs>
         </div>
