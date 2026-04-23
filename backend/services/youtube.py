@@ -111,6 +111,7 @@ def determine_music_and_genres(youtube, video_ids: List[str]) -> Tuple[List[Dict
                 if is_music:
                     music_listened.append({
                         'title': title,
+                        'video_id': video['id'],
                         'thumbnail_url': video['snippet']['thumbnails'].get('medium', {}).get('url', '')
                     })
                 if category_id:
