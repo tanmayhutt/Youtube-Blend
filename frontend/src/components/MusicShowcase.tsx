@@ -15,15 +15,11 @@ export const MusicShowcase = ({ musicTracks }: MusicShowcaseProps) => {
     return null;
   }
 
-  // Sort by most recent/most engaged (API returns in order of engagement)
-  // If play_count exists, use it; otherwise keep API order (which is most relevant first)
+  // Sort by most viewed first (highest view count)
   const sortedTracks = [...musicTracks].sort((a, b) => {
-    // If both have play_count, sort by it (descending)
-    if (a.play_count !== undefined && b.play_count !== undefined) {
-      return b.play_count - a.play_count;
-    }
-    // Otherwise keep original order (most relevant from API)
-    return 0;
+    const viewsA = a.view_count || 0;
+    const viewsB = b.view_count || 0;
+    return viewsB - viewsA;
   });
 
   const displayTracks = expandedMusic ? sortedTracks : sortedTracks.slice(0, 4);

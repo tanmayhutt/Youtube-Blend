@@ -21,6 +21,8 @@ const Dashboard = () => {
   const [shareLink, setShareLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [expandedGenres, setExpandedGenres] = useState(false);
+  const [expandedVideos, setExpandedVideos] = useState(false);
+  const [expandedPlaylists, setExpandedPlaylists] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -288,15 +290,40 @@ const Dashboard = () => {
 
                   <TabsContent value="videos" className="space-y-6">
                     <div>
-                      <div className="flex items-center gap-2 mb-4">
-                        <h3 className="text-xl font-semibold">Your Saved Videos</h3>
-                        <Badge variant="secondary">{userData.saved_videos?.length || 0}</Badge>
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-xl font-semibold">Your Saved Videos</h3>
+                          <Badge variant="secondary">{userData.saved_videos?.length || 0}</Badge>
+                        </div>
                       </div>
                       {userData.saved_videos && userData.saved_videos.length > 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                          {userData.saved_videos.map((video: any, index: number) => (
-                            <VideoCard key={index} title={video.title} thumbnailUrl={video.thumbnail_url} videoId={video.video_id} />
-                          ))}
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                            {userData.saved_videos
+                              .slice(0, expandedVideos ? undefined : 8)
+                              .map((video: any, index: number) => (
+                                <VideoCard key={index} title={video.title} thumbnailUrl={video.thumbnail_url} videoId={video.video_id} />
+                              ))}
+                          </div>
+                          {(userData.saved_videos?.length || 0) > 8 && (
+                            <Button
+                              onClick={() => setExpandedVideos(!expandedVideos)}
+                              variant="outline"
+                              className="w-full gap-2"
+                            >
+                              {expandedVideos ? (
+                                <>
+                                  Show Less
+                                  <ChevronDown className="w-4 h-4 transform rotate-180" />
+                                </>
+                              ) : (
+                                <>
+                                  Show All {userData.saved_videos?.length} Videos
+                                  <ChevronDown className="w-4 h-4" />
+                                </>
+                              )}
+                            </Button>
+                          )}
                         </div>
                       ) : (
                         <Card className="p-8 text-center">
@@ -308,15 +335,40 @@ const Dashboard = () => {
 
                   <TabsContent value="playlists" className="space-y-6">
                     <div>
-                      <div className="flex items-center gap-2 mb-4">
-                        <h3 className="text-xl font-semibold">Your Playlists</h3>
-                        <Badge variant="secondary">{userData.playlists?.length || 0}</Badge>
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-xl font-semibold">Your Playlists</h3>
+                          <Badge variant="secondary">{userData.playlists?.length || 0}</Badge>
+                        </div>
                       </div>
                       {userData.playlists && userData.playlists.length > 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                          {userData.playlists.map((playlist: any, index: number) => (
-                            <VideoCard key={index} title={playlist.title} thumbnailUrl={playlist.thumbnail_url} playlistId={playlist.playlist_id} />
-                          ))}
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                            {userData.playlists
+                              .slice(0, expandedPlaylists ? undefined : 8)
+                              .map((playlist: any, index: number) => (
+                                <VideoCard key={index} title={playlist.title} thumbnailUrl={playlist.thumbnail_url} playlistId={playlist.playlist_id} />
+                              ))}
+                          </div>
+                          {(userData.playlists?.length || 0) > 8 && (
+                            <Button
+                              onClick={() => setExpandedPlaylists(!expandedPlaylists)}
+                              variant="outline"
+                              className="w-full gap-2"
+                            >
+                              {expandedPlaylists ? (
+                                <>
+                                  Show Less
+                                  <ChevronDown className="w-4 h-4 transform rotate-180" />
+                                </>
+                              ) : (
+                                <>
+                                  Show All {userData.playlists?.length} Playlists
+                                  <ChevronDown className="w-4 h-4" />
+                                </>
+                              )}
+                            </Button>
+                          )}
                         </div>
                       ) : (
                         <Card className="p-8 text-center">

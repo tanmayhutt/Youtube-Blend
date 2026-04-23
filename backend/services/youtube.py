@@ -102,17 +102,21 @@ def determine_music_and_genres(youtube, video_ids: List[str]) -> Tuple[List[Dict
     try:
         for i in range(0, len(video_ids), 50):
             batch_ids = video_ids[i:i+50]
-            request = youtube.videos().list(part='snippet', id=','.join(batch_ids))
+            # Include statistics to get viewCount for sorting
+            request = youtube.videos().list(part='snippet,statistics', id=','.join(batch_ids))
             response = request.execute()
             for video in response.get('items', []):
                 title = sanitize_string(video['snippet']['title'])
                 category_id = video['snippet'].get('categoryId')
                 is_music = category_id == '10' or any(keyword in title.lower() for keyword in ['song', 'music', 'album', 'track', 'playlist'])
                 if is_music:
+                    # Get view count from statistics
+                    view_count = int(video.get('statistics', {}).get('viewCount', 0))
                     music_listened.append({
                         'title': title,
                         'video_id': video['id'],
-                        'thumbnail_url': video['snippet']['thumbnails'].get('medium', {}).get('url', '')
+                        'thumbnail_url': video['snippet']['thumbnails'].get('medium', {}).get('url', ''),
+                        'view_count': view_count
                     })
                 if category_id:
                     category_request = youtube.videoCategories().list(part='snippet', id=category_id)
