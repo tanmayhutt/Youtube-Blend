@@ -8,9 +8,8 @@ import { ChannelCard } from "@/components/ChannelCard";
 import { VideoCard } from "@/components/VideoCard";
 import { Badge } from "@/components/ui/badge";
 import { FloatingChannels } from "@/components/FloatingChannels";
-import { GenrePieChart } from "@/components/GenrePieChart";
 import { MusicShowcase } from "@/components/MusicShowcase";
-import { Youtube, Link as LinkIcon, LogOut, Loader2, Copy, Check, TrendingUp, Video, Music, List } from "lucide-react";
+import { Youtube, Link as LinkIcon, LogOut, Loader2, Copy, Check, TrendingUp, Video, Music, List, ChevronDown } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { authClient, clearTokens, isAuthenticated, saveTokens } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -21,6 +20,7 @@ const Dashboard = () => {
   const [generatingLink, setGeneratingLink] = useState(false);
   const [shareLink, setShareLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [expandedGenres, setExpandedGenres] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -229,16 +229,44 @@ const Dashboard = () => {
                 )}
               </div>
 
-              {/* Genre Analysis */}
-              <div className="grid grid-cols-1 gap-8">
-                {userData.subscription_genres && userData.subscription_genres.length > 0 && (
-                  <GenrePieChart genres={userData.subscription_genres} title="Channel Genre Breakdown" />
+              {/* Genre Section */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-xl font-semibold">Your Favorite Genres</h3>
+                  <Badge variant="secondary">
+                    {new Set([...(userData.subscription_genres || []), ...(userData.video_genres || [])]).size}
+                  </Badge>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {Array.from(new Set([...(userData.subscription_genres || []), ...(userData.video_genres || [])]))
+                    .slice(0, expandedGenres ? undefined : 8)
+                    .map((genre: any, index: number) => (
+                      <Badge key={index} variant="outline" className="capitalize">
+                        {String(genre).replace(/_/g, " ")}
+                      </Badge>
+                    ))}
+                </div>
+                {(userData.subscription_genres?.length || 0) + (userData.video_genres?.length || 0) > 8 && (
+                  <Button
+                    onClick={() => setExpandedGenres(!expandedGenres)}
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                  >
+                    {expandedGenres ? (
+                      <>
+                        Show Less
+                        <ChevronDown className="w-4 h-4 transform rotate-180" />
+                      </>
+                    ) : (
+                      <>
+                        Show All Genres
+                        <ChevronDown className="w-4 h-4" />
+                      </>
+                    )}
+                  </Button>
                 )}
               </div>
-
-              {userData.video_genres && userData.video_genres.length > 0 && (
-                <GenrePieChart genres={userData.video_genres} title="Video Genre Analysis" />
-              )}
 
               {/* Tabs for detailed browsing */}
               <div>

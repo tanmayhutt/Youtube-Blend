@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { ThreeJsVisualization } from "@/components/ThreeJsVisualization";
 import { FloatingChannels } from "@/components/FloatingChannels";
 import { MusicShowcase } from "@/components/MusicShowcase";
-import { Youtube, TrendingUp, Music, Video, Home, Loader2, List } from "lucide-react";
+import { Youtube, TrendingUp, Music, Video, Home, Loader2, List, ChevronDown } from \"lucide-react\";
 import { Logo } from "@/components/Logo";
 import { authClient, saveTokens, clearTokens, isAuthenticated } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
