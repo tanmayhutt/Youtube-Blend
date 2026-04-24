@@ -12,6 +12,7 @@ import { FloatingChannels } from "@/components/FloatingChannels";
 import { MusicShowcase } from "@/components/MusicShowcase";
 import { Youtube, TrendingUp, Music, Video, Home, Loader2, List, ChevronDown } from "lucide-react";
 import { Logo } from "@/components/Logo";
+import { Footer } from "@/components/Footer";
 import { authClient, saveTokens, clearTokens, isAuthenticated } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 
@@ -63,24 +64,29 @@ const CompareFinalise = () => {
 
   const getMatchMessage = (score: number) => {
     if (score >= 80) return {
-      text: "Excellent Match",
-      desc: "You share significant YouTube interests with very similar viewing preferences"
+      text: "🔥 Soulmate Alert!",
+      desc: "You're basically the same person! Your YouTube tastes align perfectly. Time to start a music duo? 🎵",
+      emoji: "👯"
     };
     if (score >= 60) return {
-      text: "Good Match",
-      desc: "You have substantial common ground with overlapping content interests"
+      text: "✨ Great Vibes",
+      desc: "You've got solid common ground here. Your playlists would probably be inseparable besties! 🎬",
+      emoji: "🤝"
     };
     if (score >= 40) return {
-      text: "Moderate Match",
-      desc: "You share some interests, but also bring different perspectives to content"
+      text: "💫 Interesting Mix",
+      desc: "Different flavors, same palette! You'll probably introduce each other to some gems. 💎",
+      emoji: "🎪"
     };
     if (score >= 20) return {
-      text: "Limited Match",
-      desc: "Your viewing preferences are quite different, offering opportunities for discovery"
+      text: "🌈 Opposites Attract",
+      desc: "Your YouTube universes are pretty different—time for some culture swap! 🎨",
+      emoji: "🚀"
     };
     return {
-      text: "Minimal Match",
-      desc: "Your YouTube interests are quite distinct, which can lead to interesting recommendations"
+      text: "🎲 Plot Twist!",
+      desc: "You might as well be from different YouTube galaxies! But hey, that's the fun of it 🌌",
+      emoji: "🎭"
     };
   };
 
@@ -150,21 +156,23 @@ const CompareFinalise = () => {
         <div className="animate-fade-in">
           {/* Match Score Card with 3D Visualization */}
           {matchMessage && (
-            <Card className="mb-12 p-8 text-center border-border/50">
+            <Card className="mb-12 p-8 text-center border-red-500/30 bg-gradient-to-br from-red-500/5 via-background to-orange-500/5">
               <div className="space-y-6">
+                <div className="text-6xl animate-bounce">{matchMessage.emoji}</div>
                 <div>
-                  <h2 className="text-4xl font-bold text-foreground mb-2">
+                  <h2 className="text-5xl font-bold bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent mb-3">
                     {matchMessage.text}
                   </h2>
-                  <p className="text-muted-foreground max-w-2xl mx-auto">
+                  <p className="text-lg text-foreground/80 max-w-2xl mx-auto leading-relaxed">
                     {matchMessage.desc}
                   </p>
                 </div>
                 <div className="pt-6 border-t border-border/50">
-                  <div className="text-5xl font-bold text-red-600 dark:text-red-500">
+                  <div className="text-6xl font-bold bg-gradient-to-r from-red-600 to-orange-500 bg-clip-text text-transparent">
                     {comparisonData.scores.overall.toFixed(1)}%
                   </div>
-                  <p className="text-sm text-muted-foreground mt-2">Compatibility Score</p>
+                  <p className="text-sm text-muted-foreground mt-2">YouTube Compatibility 🎬</p>
+                  <div className="mt-4 h-2 bg-gradient-to-r from-red-600 to-orange-500 rounded-full w-full max-w-xs mx-auto"></div>
                 </div>
               </div>
             </Card>
@@ -200,7 +208,10 @@ const CompareFinalise = () => {
             </TabsList>
 
             <TabsContent value="scores" className="space-y-6">
-              <h2 className="text-2xl font-bold text-foreground">Score Breakdown</h2>
+              <div>
+                <h2 className="text-2xl font-bold text-foreground mb-2">📊 Score Breakdown</h2>
+                <p className="text-sm text-muted-foreground mb-4">How well you match across different YouTube categories</p>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {Object.entries(comparisonData.scores).map(([key, value]: [string, any]) => (
                   <ScoreCard key={key} label={key} score={value} />
@@ -209,7 +220,10 @@ const CompareFinalise = () => {
             </TabsContent>
 
             <TabsContent value="common" className="space-y-8">
-              <h2 className="text-3xl font-bold text-foreground mb-2">What You Both Love</h2>
+              <div className="mb-6">
+                <h2 className="text-3xl font-bold text-foreground mb-2">💕 What You Both Love</h2>
+                <p className="text-muted-foreground">The intersection of your YouTube universes—these are the gems you share!</p>
+              </div>
 
               {(comparisonData.common_subscriptions?.length > 0 ||
                 comparisonData.common_saved_videos?.length > 0 ||
@@ -249,7 +263,10 @@ const CompareFinalise = () => {
             </TabsContent>
 
             <TabsContent value="subscriptions" className="space-y-6">
-              <h2 className="text-2xl font-bold text-foreground">Subscriptions</h2>
+              <div>
+                <h2 className="text-2xl font-bold text-foreground mb-2">📺 Your Channels</h2>
+                <p className="text-sm text-muted-foreground mb-4">See who you're following and compare your channel obsessions</p>
+              </div>
               {(comparisonData.subscriptions?.length > 0 || comparisonData.user_2_subscriptions?.length > 0) ? (
                 <div className="space-y-8">
                   {comparisonData.subscriptions?.length > 0 && (
@@ -282,7 +299,10 @@ const CompareFinalise = () => {
             </TabsContent>
 
             <TabsContent value="videos" className="space-y-6">
-              <h2 className="text-2xl font-bold text-foreground">Saved Videos</h2>
+              <div>
+                <h2 className="text-2xl font-bold text-foreground mb-2">🎥 Your Saved Videos</h2>
+                <p className="text-sm text-muted-foreground mb-4">Videos you've bookmarked and loved</p>
+              </div>
               {(comparisonData.saved_videos?.length > 0 || comparisonData.user_2_saved_videos?.length > 0) ? (
                 <div className="space-y-8">
                   {comparisonData.saved_videos?.length > 0 && (
@@ -315,7 +335,10 @@ const CompareFinalise = () => {
             </TabsContent>
 
             <TabsContent value="music" className="space-y-6">
-              <h2 className="text-2xl font-bold text-foreground">Music</h2>
+              <div>
+                <h2 className="text-2xl font-bold text-foreground mb-2">🎵 Your Music Taste</h2>
+                <p className="text-sm text-muted-foreground mb-4">Your most-played music tracks</p>
+              </div>
               {(comparisonData.music_listened?.length > 0 || comparisonData.user_2_music_listened?.length > 0) ? (
                 <div className="space-y-8">
                   {comparisonData.music_listened?.length > 0 && (
@@ -348,7 +371,10 @@ const CompareFinalise = () => {
             </TabsContent>
 
             <TabsContent value="genres" className="space-y-8">
-              <h2 className="text-2xl font-bold text-foreground">Your Interests</h2>
+              <div>
+                <h2 className="text-2xl font-bold text-foreground mb-2">🎨 Your Interests</h2>
+                <p className="text-sm text-muted-foreground mb-4">The genres and categories that define your YouTube personality</p>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {comparisonData.subscription_genres?.length > 0 && (
                   <div className="space-y-3">
@@ -410,6 +436,7 @@ const CompareFinalise = () => {
           </Tabs>
         </div>
       </main>
+      <Footer />
     </div>
   );
 };

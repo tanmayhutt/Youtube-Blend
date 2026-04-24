@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Youtube, Users, BarChart3, Lock, Zap, Loader2 } from "lucide-react";
 import { Logo } from "@/components/Logo";
+import { Footer } from "@/components/Footer";
 import { initiateLogin, isAuthenticated, saveTokens } from "@/lib/auth";
 
 const Landing = () => {
@@ -56,12 +57,12 @@ const Landing = () => {
             {/* Main Headline */}
             <div className="space-y-4">
               <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-foreground">
-                Compare Your
+                What's Your
                 <br />
-                <span className="text-red-600 dark:text-red-500">YouTube Taste</span>
+                <span className="bg-gradient-to-r from-red-600 to-orange-500 bg-clip-text text-transparent">YouTube Personality?</span>
               </h1>
               <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-                See how your video preferences align with friends. Discover compatibility scores based on your subscriptions, watch history, and viewing patterns.
+                Discover how your YouTube taste aligns with friends. Get a compatibility score, find common channels, music taste, and explore what makes your viewing habits unique. 🎬
               </p>
             </div>
 
@@ -97,22 +98,22 @@ const Landing = () => {
         {/* Features Grid */}
         <div className="py-24 border-t border-border/50">
           <div className="max-w-5xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-12 text-center">How It Works</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-12 text-center">✨ How YouTube Blend Works</h2>
             <div className="grid md:grid-cols-3 gap-8">
               <FeatureCard
                 icon={Users}
-                title="Connect Profiles"
-                description="Sign in with your Google account to securely access your YouTube data"
+                title="🔐 Connect Your Account"
+                description="Sign in securely with your Google account. We only read your public YouTube data—nothing is modified."
               />
               <FeatureCard
                 icon={BarChart3}
-                title="Generate Link"
-                description="Create a shareable link and invite friends to compare your viewing habits"
+                title="🔗 Generate a Comparison Link"
+                description="Create a unique link to share with friends. It expires in 2 hours for maximum privacy."
               />
               <FeatureCard
                 icon={Zap}
-                title="View Results"
-                description="Get a compatibility score and see common channels, genres, and interests"
+                title="🎯 See Your Compatibility"
+                description="Get a fun compatibility score, discover common interests, music taste, and what makes you different!"
               />
             </div>
           </div>
@@ -121,7 +122,7 @@ const Landing = () => {
         {/* Trust & Security Section */}
         <div className="py-24 border-t border-border/50 mb-12">
           <div className="max-w-3xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-12 text-center">Built with Privacy First</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-12 text-center">🛡️ We Respect Your Privacy</h2>
             <div className="space-y-6">
               <TrustItem icon={Lock} title="Read-Only Access" description="We only access your public subscriptions and saved videos. No data is modified or stored permanently." />
               <TrustItem icon={Zap} title="No Account Required" description="Results are temporary. Your comparison link expires after 2 hours for your privacy." />
@@ -130,13 +131,7 @@ const Landing = () => {
           </div>
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="border-t border-border/50 bg-card/30 py-8">
-        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>YouTube Blend © 2026. Not affiliated with Google or YouTube.</p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };

@@ -11,6 +11,7 @@ import { FloatingChannels } from "@/components/FloatingChannels";
 import { MusicShowcase } from "@/components/MusicShowcase";
 import { Youtube, Link as LinkIcon, LogOut, Loader2, Copy, Check, TrendingUp, Video, Music, List, ChevronDown } from "lucide-react";
 import { Logo } from "@/components/Logo";
+import { Footer } from "@/components/Footer";
 import { authClient, clearTokens, isAuthenticated, saveTokens } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 
@@ -404,6 +405,7 @@ const Dashboard = () => {
           )}
         </div>
       </main>
+      <Footer />
     </div>
   );
 };
