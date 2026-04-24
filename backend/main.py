@@ -760,3 +760,4 @@ async def auth_complete_fallback(code: str = None, next: str = None):
         </html>
         """
         return HTMLResponse(content=html, status_code=200)
+
