@@ -474,6 +474,43 @@ async def auth_exchange(req: ExchangeRequest):
     return {'access_token': token, 'user_id': google_id}
 
 
+@app.post("/auth/refresh")
+async def refresh_token(body: dict):
+    """Refresh JWT access token using refresh_token."""
+    try:
+        refresh_token_provided = body.get('refresh_token')
+        if not refresh_token_provided:
+            raise HTTPException(status_code=400, detail='Refresh token required')
+
+        # Get the comparison code to find the user
+        # The refresh token is the OAuth refresh token stored in the code doc
+        # We need to find which google_id this refresh token belongs to
+        code_collection = db['comparison_codes']
+        code_doc = code_collection.find_one({'refresh_token': refresh_token_provided})
+
+        if not code_doc:
+            raise HTTPException(status_code=401, detail='Invalid refresh token')
+
+        google_id = code_doc.get('google_id')
+
+        jwt_secret = os.getenv('JWT_SECRET')
+        if not jwt_secret:
+            raise HTTPException(status_code=500, detail='JWT_SECRET not configured')
+
+        # Issue new JWT token
+        new_token = pyjwt.encode({
+            'sub': google_id,
+            'exp': datetime.utcnow() + timedelta(minutes=30)
+        }, jwt_secret, algorithm='HS256')
+
+        return {'access_token': new_token}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error refreshing token: {str(e)}")
+        raise HTTPException(status_code=401, detail='Failed to refresh token')
+
+
 @app.get("/data/me")
 async def get_my_data(google_id: str = Depends(verify_token)):
     """Fetch authenticated user's YouTube data."""

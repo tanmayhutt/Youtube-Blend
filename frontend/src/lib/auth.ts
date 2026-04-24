@@ -25,6 +25,48 @@ authClient.interceptors.request.use((config) => {
   return config;
 });
 
+// Handle token refresh on 401
+authClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    // If it's a 401 and we haven't already tried to refresh
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      try {
+        const tokens = getTokens();
+        if (tokens?.refresh_token) {
+          // Request new access token
+          const response = await axios.post(`${API_BASE}/auth/refresh`, {
+            refresh_token: tokens.refresh_token,
+          });
+
+          if (response.data.access_token) {
+            // Save new token
+            saveTokens({
+              access_token: response.data.access_token,
+              refresh_token: tokens.refresh_token,
+            });
+
+            // Retry original request with new token
+            originalRequest.headers.Authorization = `Bearer ${response.data.access_token}`;
+            return authClient(originalRequest);
+          }
+        }
+      } catch (refreshError) {
+        console.error("Token refresh failed:", refreshError);
+        // Clear tokens and redirect to login
+        clearTokens();
+        window.location.href = '/';
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
 export const saveTokens = (tokens: AuthTokens) => {
   localStorage.setItem('auth_tokens', JSON.stringify(tokens));
 };
