@@ -102,9 +102,12 @@ const CompareFinalise = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center space-y-4">
+        <div className="text-center space-y-4 max-w-md">
           <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto" />
-          <p className="text-muted-foreground">Calculating compatibility...</p>
+          <div>
+            <p className="text-lg font-medium text-foreground mb-2">Analyzing your YouTube libraries...</p>
+            <p className="text-sm text-muted-foreground">This can take a few seconds as we compare your subscriptions, videos, and music taste across both accounts.</p>
+          </div>
         </div>
       </div>
     );

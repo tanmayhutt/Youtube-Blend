@@ -122,9 +122,12 @@ const Dashboard = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center space-y-4">
+        <div className="text-center space-y-4 max-w-md">
           <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto" />
-          <p className="text-muted-foreground">Loading your profile...</p>
+          <div>
+            <p className="text-lg font-medium text-foreground mb-2">Loading your YouTube data...</p>
+            <p className="text-sm text-muted-foreground">This can take a few seconds as we process your subscriptions, saved videos, and music history.</p>
+          </div>
         </div>
       </div>
     );

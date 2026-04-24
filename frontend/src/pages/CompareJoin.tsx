@@ -41,9 +41,12 @@ const CompareJoin = () => {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center">
-      <div className="text-center space-y-4">
+      <div className="text-center space-y-4 max-w-md">
         <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto" />
-        <p className="text-muted-foreground">Redirecting to Google Sign-In...</p>
+        <div>
+          <p className="text-lg font-medium text-foreground mb-2">Setting things up...</p>
+          <p className="text-sm text-muted-foreground">Redirecting to secure Google Sign-In so we can access your YouTube data.</p>
+        </div>
       </div>
     </div>
   );
