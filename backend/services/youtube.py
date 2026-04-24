@@ -195,6 +195,7 @@ def count_music_watch_times(youtube) -> Dict[str, int]:
                                 video_watch_counts[video_id] = video_watch_counts.get(video_id, 0) + 1
                         item_request = youtube.playlistItems().list_next(item_request, item_response)
                 playlist_request = youtube.playlists().list_next(playlist_request, playlist_response)
+    except Exception as e:
         logger.error(f"Error counting music watch times: {str(e)}")
 
     return video_watch_counts

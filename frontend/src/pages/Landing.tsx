@@ -62,7 +62,7 @@ const Landing = () => {
                 <span className="bg-gradient-to-r from-red-600 to-orange-500 bg-clip-text text-transparent">YouTube Personality?</span>
               </h1>
               <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-                Discover how your YouTube taste aligns with friends. Get a compatibility score, find common channels, music taste, and explore what makes your viewing habits unique. 🎬
+                Discover how your YouTube taste aligns with friends. Get a compatibility score, find common channels, music taste, and explore what makes your viewing habits unique.
               </p>
             </div>
 
@@ -98,21 +98,21 @@ const Landing = () => {
         {/* Features Grid */}
         <div className="py-24 border-t border-border/50">
           <div className="max-w-5xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-12 text-center">✨ How YouTube Blend Works</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-12 text-center">How YouTube Blend Works</h2>
             <div className="grid md:grid-cols-3 gap-8">
               <FeatureCard
                 icon={Users}
-                title="🔐 Connect Your Account"
+                title="Connect Your Account"
                 description="Sign in securely with your Google account. We only read your public YouTube data—nothing is modified."
               />
               <FeatureCard
                 icon={BarChart3}
-                title="🔗 Generate a Comparison Link"
+                title="Generate a Comparison Link"
                 description="Create a unique link to share with friends. It expires in 2 hours for maximum privacy."
               />
               <FeatureCard
                 icon={Zap}
-                title="🎯 See Your Compatibility"
+                title="See Your Compatibility"
                 description="Get a fun compatibility score, discover common interests, music taste, and what makes you different!"
               />
             </div>
@@ -122,7 +122,7 @@ const Landing = () => {
         {/* Trust & Security Section */}
         <div className="py-24 border-t border-border/50 mb-12">
           <div className="max-w-3xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-12 text-center">🛡️ We Respect Your Privacy</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-12 text-center">We Respect Your Privacy</h2>
             <div className="space-y-6">
               <TrustItem icon={Lock} title="Read-Only Access" description="We only access your public subscriptions and saved videos. No data is modified or stored permanently." />
               <TrustItem icon={Zap} title="No Account Required" description="Results are temporary. Your comparison link expires after 2 hours for your privacy." />
