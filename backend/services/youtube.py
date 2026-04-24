@@ -146,37 +146,55 @@ def fetch_playlists(youtube):
     return playlists
 
 def count_music_watch_times(youtube) -> Dict[str, int]:
-    """Counts how many times each music video appears across playlists and likes.
-    Higher count = watched/added more times = higher priority."""
+    """Counts how many times each music video appears in watch history.
+    More appearances in watch history = listened more times."""
     video_watch_counts = {}
     try:
-        # Count from liked videos
-        request = youtube.videos().list(part='snippet', myRating='like', maxResults=50)
-        while request:
-            response = request.execute()
-            for video in response.get('items', []):
-                video_id = video['id']
-                # Liked videos count as 1 watch
-                video_watch_counts[video_id] = video_watch_counts.get(video_id, 0) + 0.5
-            request = youtube.videos().list_next(request, response)
+        # Find watch history playlist (usually titled "Watch History")
+        playlist_request = youtube.playlists().list(part='snippet,id', mine=True, maxResults=50)
+        watch_history_id = None
 
-        # Count from playlists (multiple playlist appearances = more engagement)
-        playlist_request = youtube.playlists().list(part='id', mine=True, maxResults=50)
-        while playlist_request:
+        while playlist_request and not watch_history_id:
             playlist_response = playlist_request.execute()
             for playlist in playlist_response.get('items', []):
-                playlist_id = playlist['id']
-                item_request = youtube.playlistItems().list(part='snippet', playlistId=playlist_id, maxResults=50)
-                while item_request:
-                    item_response = item_request.execute()
-                    for item in item_response.get('items', []):
-                        video_id = item['snippet']['resourceId'].get('videoId')
-                        if video_id:
-                            # Each playlist appearance counts as 1
-                            video_watch_counts[video_id] = video_watch_counts.get(video_id, 0) + 1
-                    item_request = youtube.playlistItems().list_next(item_request, item_response)
+                if 'history' in playlist['snippet']['title'].lower() or playlist['snippet']['title'] == 'Watch History':
+                    watch_history_id = playlist['id']
+                    break
             playlist_request = youtube.playlists().list_next(playlist_request, playlist_response)
-    except Exception as e:
+
+        # If watch history playlist found, count video appearances in it
+        if watch_history_id:
+            item_request = youtube.playlistItems().list(part='snippet', playlistId=watch_history_id, maxResults=50)
+            requests_count = 0
+            max_requests = 50  # Limit to ~2500 most recent watches
+
+            while item_request and requests_count < max_requests:
+                item_response = item_request.execute()
+                for item in item_response.get('items', []):
+                    video_id = item['snippet']['resourceId'].get('videoId')
+                    if video_id:
+                        # Each appearance in watch history = 1 listen
+                        video_watch_counts[video_id] = video_watch_counts.get(video_id, 0) + 1
+
+                item_request = youtube.playlistItems().list_next(item_request, item_response)
+                requests_count += 1
+        else:
+            # Fallback: count from playlists if watch history not accessible
+            playlist_request = youtube.playlists().list(part='id', mine=True, maxResults=50)
+            while playlist_request:
+                playlist_response = playlist_request.execute()
+                for playlist in playlist_response.get('items', []):
+                    playlist_id = playlist['id']
+                    item_request = youtube.playlistItems().list(part='snippet', playlistId=playlist_id, maxResults=50)
+                    while item_request:
+                        item_response = item_request.execute()
+                        for item in item_response.get('items', []):
+                            video_id = item['snippet']['resourceId'].get('videoId')
+                            if video_id:
+                                # Each playlist appearance counts as 1
+                                video_watch_counts[video_id] = video_watch_counts.get(video_id, 0) + 1
+                        item_request = youtube.playlistItems().list_next(item_request, item_response)
+                playlist_request = youtube.playlists().list_next(playlist_request, playlist_response)
         logger.error(f"Error counting music watch times: {str(e)}")
 
     return video_watch_counts
