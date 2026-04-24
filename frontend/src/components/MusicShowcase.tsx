@@ -15,11 +15,11 @@ export const MusicShowcase = ({ musicTracks }: MusicShowcaseProps) => {
     return null;
   }
 
-  // Sort by most viewed first (highest view count)
+  // Sort by most listened (watch_count = times in playlists + likes)
   const sortedTracks = [...musicTracks].sort((a, b) => {
-    const viewsA = a.view_count || 0;
-    const viewsB = b.view_count || 0;
-    return viewsB - viewsA;
+    const watchsA = a.watch_count || 0;
+    const watchsB = b.watch_count || 0;
+    return watchsB - watchsA;
   });
 
   const displayTracks = expandedMusic ? sortedTracks : sortedTracks.slice(0, 4);

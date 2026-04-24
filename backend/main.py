@@ -26,7 +26,8 @@ from services.youtube import (
     fetch_subscription_genres,
     fetch_saved_videos,
     determine_music_and_genres,
-    fetch_playlists
+    fetch_playlists,
+    count_music_watch_times
 )
 from services.comparison import compare_interests_logic
 
@@ -527,6 +528,11 @@ async def get_my_data(google_id: str = Depends(verify_token)):
         saved_data = fetch_saved_videos(youtube)
         music_listened, video_genres = determine_music_and_genres(youtube, saved_data['video_ids'])
         playlists = fetch_playlists(youtube)
+
+        # Get watch time counts and merge with music data
+        watch_counts = count_music_watch_times(youtube)
+        for track in music_listened:
+            track['watch_count'] = watch_counts.get(track['video_id'], 0)
 
         return {
             'subscriptions': subscriptions,

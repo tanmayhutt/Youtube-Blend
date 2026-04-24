@@ -144,3 +144,39 @@ def fetch_playlists(youtube):
     except Exception as e:
         logger.error(f"Error fetching playlists: {str(e)}")
     return playlists
+
+def count_music_watch_times(youtube) -> Dict[str, int]:
+    """Counts how many times each music video appears across playlists and likes.
+    Higher count = watched/added more times = higher priority."""
+    video_watch_counts = {}
+    try:
+        # Count from liked videos
+        request = youtube.videos().list(part='snippet', myRating='like', maxResults=50)
+        while request:
+            response = request.execute()
+            for video in response.get('items', []):
+                video_id = video['id']
+                # Liked videos count as 1 watch
+                video_watch_counts[video_id] = video_watch_counts.get(video_id, 0) + 0.5
+            request = youtube.videos().list_next(request, response)
+
+        # Count from playlists (multiple playlist appearances = more engagement)
+        playlist_request = youtube.playlists().list(part='id', mine=True, maxResults=50)
+        while playlist_request:
+            playlist_response = playlist_request.execute()
+            for playlist in playlist_response.get('items', []):
+                playlist_id = playlist['id']
+                item_request = youtube.playlistItems().list(part='snippet', playlistId=playlist_id, maxResults=50)
+                while item_request:
+                    item_response = item_request.execute()
+                    for item in item_response.get('items', []):
+                        video_id = item['snippet']['resourceId'].get('videoId')
+                        if video_id:
+                            # Each playlist appearance counts as 1
+                            video_watch_counts[video_id] = video_watch_counts.get(video_id, 0) + 1
+                    item_request = youtube.playlistItems().list_next(item_request, item_response)
+            playlist_request = youtube.playlists().list_next(playlist_request, playlist_response)
+    except Exception as e:
+        logger.error(f"Error counting music watch times: {str(e)}")
+
+    return video_watch_counts
