@@ -235,45 +235,6 @@ const Dashboard = () => {
                 )}
               </div>
 
-              {/* Genre Section */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-xl font-semibold">Your Favorite Genres</h3>
-                  <Badge variant="secondary">
-                    {new Set([...(userData.subscription_genres || []), ...(userData.video_genres || [])]).size}
-                  </Badge>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {Array.from(new Set([...(userData.subscription_genres || []), ...(userData.video_genres || [])]))
-                    .slice(0, expandedGenres ? undefined : 8)
-                    .map((genre: any, index: number) => (
-                      <Badge key={index} variant="outline" className="capitalize">
-                        {String(genre).replace(/_/g, " ")}
-                      </Badge>
-                    ))}
-                </div>
-                {(userData.subscription_genres?.length || 0) + (userData.video_genres?.length || 0) > 8 && (
-                  <Button
-                    onClick={() => setExpandedGenres(!expandedGenres)}
-                    variant="outline"
-                    size="sm"
-                    className="gap-2"
-                  >
-                    {expandedGenres ? (
-                      <>
-                        Show Less
-                        <ChevronDown className="w-4 h-4 transform rotate-180" />
-                      </>
-                    ) : (
-                      <>
-                        Show All Genres
-                        <ChevronDown className="w-4 h-4" />
-                      </>
-                    )}
-                  </Button>
-                )}
-              </div>
-
               {/* Tabs for detailed browsing */}
               <div>
                 <Tabs defaultValue="videos" className="w-full">
@@ -403,6 +364,48 @@ const Dashboard = () => {
                     </div>
                   </TabsContent>
                 </Tabs>
+              </div>
+
+              {/* Genre Section at Bottom */}
+              <div className="space-y-6 border-t border-border/50 pt-8 mt-8">
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <h3 className="text-2xl font-semibold">Your Favorite Genres</h3>
+                    <Badge variant="secondary" className="text-sm">
+                      {new Set([...(userData.subscription_genres || []), ...(userData.video_genres || [])]).size}
+                    </Badge>
+                  </div>
+                  <p className="text-muted-foreground text-sm mb-4">These genres define your YouTube taste across your subscriptions and saved content.</p>
+                  <div className="flex flex-wrap gap-3">
+                    {Array.from(new Set([...(userData.subscription_genres || []), ...(userData.video_genres || [])]))
+                      .sort()
+                      .slice(0, expandedGenres ? undefined : 12)
+                      .map((genre: any, index: number) => (
+                        <Badge key={index} variant="outline" className="capitalize px-4 py-2 text-sm border-2 rounded-full">
+                          {String(genre).replace(/_/g, " ")}
+                        </Badge>
+                      ))}
+                  </div>
+                  {(userData.subscription_genres?.length || 0) + (userData.video_genres?.length || 0) > 12 && (
+                    <Button
+                      onClick={() => setExpandedGenres(!expandedGenres)}
+                      variant="outline"
+                      className="mt-4 gap-2"
+                    >
+                      {expandedGenres ? (
+                        <>
+                          Show Less
+                          <ChevronDown className="w-4 h-4 transform rotate-180" />
+                        </>
+                      ) : (
+                        <>
+                          Show All {new Set([...(userData.subscription_genres || []), ...(userData.video_genres || [])]).size} Genres
+                          <ChevronDown className="w-4 h-4" />
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
               </div>
             </>
           )}
