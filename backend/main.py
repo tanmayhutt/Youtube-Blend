@@ -200,16 +200,89 @@ async def root():
     return {"message": "YouTube Blend API is LIVE"}
 
 def cache_user_data(google_id: str, data: dict):
-    """Store user's YouTube data in MongoDB with 24-hour TTL."""
+    """Store user's YouTube data in MongoDB with timestamps for incremental sync."""
     try:
+        # Get existing data to merge
+        existing_doc = users.find_one({'google_id': google_id})
+        existing_data = existing_doc.get('cached_data', {}) if existing_doc else {}
+
+        # Extract IDs from new and old data for comparison
+        new_sub_ids = {s['channel_id'] for s in data.get('subscriptions', [])}
+        old_sub_ids = {s['channel_id'] for s in existing_data.get('subscriptions', [])}
+
+        new_video_ids = {v['video_id'] for v in data.get('saved_videos', [])}
+        old_video_ids = {v['video_id'] for v in existing_data.get('saved_videos', [])}
+
+        new_music_ids = {m['video_id'] for m in data.get('music_listened', [])}
+        old_music_ids = {m['video_id'] for m in existing_data.get('music_listened', [])}
+
+        # Mark new subscriptions
+        for sub in data.get('subscriptions', []):
+            if sub['channel_id'] not in old_sub_ids:
+                sub['added_at'] = datetime.utcnow()
+            else:
+                # Keep original added_at if it existed
+                old_sub = next((s for s in existing_data.get('subscriptions', []) if s['channel_id'] == sub['channel_id']), None)
+                if old_sub and 'added_at' in old_sub:
+                    sub['added_at'] = old_sub['added_at']
+            sub['last_synced_at'] = datetime.utcnow()
+
+        # Mark new videos
+        for video in data.get('saved_videos', []):
+            if video['video_id'] not in old_video_ids:
+                video['added_at'] = datetime.utcnow()
+            else:
+                old_video = next((v for v in existing_data.get('saved_videos', []) if v['video_id'] == video['video_id']), None)
+                if old_video and 'added_at' in old_video:
+                    video['added_at'] = old_video['added_at']
+            video['last_synced_at'] = datetime.utcnow()
+
+        # Mark new/updated music and track watch count changes
+        for music in data.get('music_listened', []):
+            if music['video_id'] not in old_music_ids:
+                music['added_at'] = datetime.utcnow()
+                music['first_watched_at'] = datetime.utcnow()
+            else:
+                # Keep original timestamps
+                old_music = next((m for m in existing_data.get('music_listened', []) if m['video_id'] == music['video_id']), None)
+                if old_music:
+                    music['added_at'] = old_music.get('added_at', datetime.utcnow())
+                    music['first_watched_at'] = old_music.get('first_watched_at', datetime.utcnow())
+                    # Track if watch count increased
+                    old_count = old_music.get('watch_count', 0)
+                    new_count = music.get('watch_count', 0)
+                    if new_count > old_count:
+                        music['last_listened_at'] = datetime.utcnow()
+                        music['listen_increase'] = new_count - old_count
+            music['last_synced_at'] = datetime.utcnow()
+
+        merged_data = {
+            'subscriptions': data.get('subscriptions', []),
+            'subscription_genres': data.get('subscription_genres', []),
+            'saved_videos': data.get('saved_videos', []),
+            'music_listened': data.get('music_listened', []),
+            'video_genres': data.get('video_genres', []),
+            'playlists': data.get('playlists', [])
+        }
+
         users.update_one(
             {'google_id': google_id},
             {'$set': {
-                'cached_data': data,
-                'cached_at': datetime.utcnow()
+                'cached_data': merged_data,
+                'cached_at': datetime.utcnow(),
+                'total_subscriptions': len(data.get('subscriptions', [])),
+                'total_videos': len(data.get('saved_videos', [])),
+                'total_music': len(data.get('music_listened', []))
             }}
         )
-        logger.info(f"Cached data for user {google_id}")
+
+        # Log what changed
+        new_subs = new_sub_ids - old_sub_ids
+        new_vids = new_video_ids - old_video_ids
+        new_songs = new_music_ids - old_music_ids
+
+        if new_subs or new_vids or new_songs:
+            logger.info(f"Synced for {google_id}: +{len(new_subs)} subs, +{len(new_vids)} videos, +{len(new_songs)} songs")
     except Exception as e:
         logger.error(f"Failed to cache user data: {e}")
 
@@ -224,13 +297,12 @@ def get_cached_user_data(google_id: str, cache_validity_hours: int = 24):
         if not cached_at:
             return None
 
-        # Check if cache is fresh
-        age = (datetime.utcnow() - cached_at).total_seconds() / 3600  # hours
+        age = (datetime.utcnow() - cached_at).total_seconds() / 3600
         if age < cache_validity_hours:
-            logger.info(f"Using cached data for user {google_id} (age: {age:.1f}h)")
+            logger.info(f"Using cached data for {google_id} (age: {age:.1f}h, subs: {doc.get('total_subscriptions', 0)}, songs: {doc.get('total_music', 0)})")
             return doc['cached_data']
 
-        logger.info(f"Cache expired for user {google_id} (age: {age:.1f}h)")
+        logger.info(f"Cache expired for {google_id} (age: {age:.1f}h), fetching fresh data")
         return None
     except Exception as e:
         logger.error(f"Failed to retrieve cached data: {e}")
@@ -616,6 +688,56 @@ async def get_my_data(google_id: str = Depends(verify_token)):
     except Exception as e:
         logger.exception("Error fetching user data")
         raise HTTPException(status_code=500, detail=f"Failed to fetch YouTube data: {str(e)}")
+
+
+@app.get("/data/changes")
+async def get_data_changes(google_id: str = Depends(verify_token)):
+    """Get what's NEW or CHANGED since last login (for incremental view)."""
+    try:
+        doc = users.find_one({'google_id': google_id})
+        if not doc or 'cached_data' not in doc:
+            return {
+                'new_subscriptions': [],
+                'new_videos': [],
+                'new_music': [],
+                'changed_music': []
+            }
+
+        cached_data = doc['cached_data']
+
+        # Filter items that were added recently (within last 24 hours)
+        now = datetime.utcnow()
+
+        new_subscriptions = [
+            s for s in cached_data.get('subscriptions', [])
+            if 'added_at' in s and (now - s['added_at']).total_seconds() < 86400
+        ]
+
+        new_videos = [
+            v for v in cached_data.get('saved_videos', [])
+            if 'added_at' in v and (now - v['added_at']).total_seconds() < 86400
+        ]
+
+        new_music = [
+            m for m in cached_data.get('music_listened', [])
+            if 'added_at' in m and (now - m['added_at']).total_seconds() < 86400
+        ]
+
+        changed_music = [
+            m for m in cached_data.get('music_listened', [])
+            if 'listen_increase' in m and m['listen_increase'] > 0
+        ]
+
+        return {
+            'new_subscriptions': new_subscriptions,
+            'new_videos': new_videos,
+            'new_music': new_music,
+            'changed_music': changed_music,
+            'last_synced': doc.get('cached_at')
+        }
+    except Exception as e:
+        logger.exception("Error fetching data changes")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch changes: {str(e)}")
 
 
 @app.get("/compare/generate_link")
