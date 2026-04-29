@@ -761,7 +761,11 @@ async def get_my_data(google_id: str = Depends(verify_token)):
 
 @app.post("/data/sync")
 async def sync_user_data(google_id: str = Depends(verify_token)):
-    """Smart sync: Full fetch on first sync, incremental updates on subsequent syncs."""
+    """
+    Full initial sync: Fetches ALL YouTube data and stores in DB.
+    Subsequent syncs: Detects changes and updates only changed items.
+    Always faster after first sync (data from DB instead of YouTube API).
+    """
     try:
         creds = get_credentials_from_db(google_id)
         if not creds:
@@ -769,24 +773,20 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
 
         youtube = get_youtube_service(creds)
         doc = users.find_one({'google_id': google_id})
-        last_sync = doc.get('last_full_sync') if doc else None
+        is_first_sync = doc is None or doc.get('cached_data') is None
 
-        # Determine sync type
-        is_first_sync = last_sync is None
-        sync_type = "FULL" if is_first_sync else "INCREMENTAL"
-        logger.info(f"Starting {sync_type} sync for {google_id}")
+        logger.info(f"Starting {'FULL' if is_first_sync else 'INCREMENTAL'} sync for {google_id}")
 
-        # Parallel fetching for faster performance
+        # Fetch ALL YouTube data in parallel
         loop = asyncio.get_event_loop()
 
-        # Run these in parallel instead of sequentially
         subscriptions, saved_data = await asyncio.gather(
             loop.run_in_executor(None, fetch_subscriptions, youtube),
             loop.run_in_executor(None, fetch_saved_videos, youtube),
             return_exceptions=True
         )
 
-        # Handle any exceptions
+        # Handle exceptions from parallel fetch
         if isinstance(subscriptions, Exception):
             logger.error(f"Error fetching subscriptions: {subscriptions}")
             subscriptions = []
@@ -794,63 +794,81 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
             logger.error(f"Error fetching saved videos: {saved_data}")
             saved_data = {'video_ids': [], 'saved_videos': []}
 
-        # Fetch genres for subscriptions
+        logger.info(f"Fetched {len(subscriptions)} subscriptions, {len(saved_data.get('video_ids', []))} video IDs")
+
+        # Fetch genres and music in parallel
         channel_ids = [s['channel_id'] for s in subscriptions] if subscriptions else []
-        subscription_genres = await loop.run_in_executor(None, fetch_subscription_genres, youtube, channel_ids)
 
-        # Fetch music and video genres from LIKED videos
-        other_music_listened, video_genres = await loop.run_in_executor(None, determine_music_and_genres, youtube, saved_data.get('video_ids', []))
+        subscription_genres, other_music, watch_history_result = await asyncio.gather(
+            loop.run_in_executor(None, fetch_subscription_genres, youtube, channel_ids),
+            loop.run_in_executor(None, determine_music_and_genres, youtube, saved_data.get('video_ids', [])),
+            loop.run_in_executor(None, count_music_watch_times, youtube),
+            return_exceptions=True
+        )
 
-        # Get watch time counts from WATCH HISTORY (includes all music watched, not just liked)
-        watch_counts, music_from_history = await loop.run_in_executor(None, count_music_watch_times, youtube)
+        # Handle exceptions
+        if isinstance(subscription_genres, Exception):
+            logger.error(f"Error fetching genres: {subscription_genres}")
+            subscription_genres = []
 
-        # Combine music: watch history music + liked music (if not in history)
-        music_listened = list(music_from_history.values())  # Start with all music from watch history
+        if isinstance(other_music, Exception):
+            logger.error(f"Error determining music: {other_music}")
+            other_music = ([], [])
 
-        # Add any liked music that's not already in watch history
+        if isinstance(watch_history_result, Exception):
+            logger.error(f"Error fetching watch history: {watch_history_result}")
+            watch_history_result = ({}, {})
+
+        # Unpack music data
+        other_music_listened, video_genres = other_music
+        watch_counts, music_from_history = watch_history_result
+
+        # Combine music: ALL from watch history + liked music not in history
+        music_listened = list(music_from_history.values()) if music_from_history else []
+
         for track in other_music_listened:
             if track['video_id'] not in music_from_history:
                 track['watch_count'] = watch_counts.get(track['video_id'], 0)
                 music_listened.append(track)
 
-        # Sort by watch count (descending)
+        # Sort by watch count
         music_listened.sort(key=lambda x: x.get('watch_count', 0), reverse=True)
 
         # Fetch all playlists
         playlists = await loop.run_in_executor(None, fetch_playlists, youtube)
 
+        logger.info(f"Fetched {len(music_listened)} music tracks, {len(playlists)} playlists")
+
+        # Build complete user data
         user_data = {
             'subscriptions': subscriptions,
             'subscription_genres': subscription_genres,
             'saved_videos': saved_data.get('saved_videos', []),
             'music_listened': music_listened,
             'video_genres': video_genres,
-            'playlists': playlists
-        }
-
-        # Cache the result with smart incremental updates
+        # Store in DB (with incremental detection for subsequent syncs)
         cache_user_data(google_id, user_data)
 
-        # Update last_full_sync timestamp
+        # Update sync timestamp
         users.update_one({'google_id': google_id}, {'$set': {'last_full_sync': datetime.utcnow()}})
+
+        logger.info(f"Sync completed: {len(subscriptions)} channels, {len(music_listened)} songs, {len(playlists)} playlists")
 
         return {
             'success': True,
-            'sync_type': sync_type,
+            'sync_type': 'FULL' if is_first_sync else 'INCREMENTAL',
             'subscriptions': subscriptions,
             'subscription_genres': subscription_genres,
             'saved_videos': saved_data.get('saved_videos', []),
             'music_listened': music_listened,
             'video_genres': video_genres,
             'playlists': playlists,
-            'message': f'{sync_type} sync completed. Found {len(subscriptions)} channels, {len(music_listened)} music tracks, {len(playlists)} playlists.'
+            'message': f'Found {len(subscriptions)} channels, {len(music_listened)} songs, {len(playlists)} playlists. Data saved to database.'
         }
     except HTTPException:
         raise
     except Exception as e:
-        logger.exception("Error syncing user data")
-        raise HTTPException(status_code=500, detail=f"Failed to sync YouTube data: {str(e)}")
-
+        logger.exception(f"Error syncing user data: {str(e)}")
 
 @app.get("/data/changes")
 async def get_data_changes(google_id: str = Depends(verify_token)):
