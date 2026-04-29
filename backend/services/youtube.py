@@ -165,10 +165,8 @@ def count_music_watch_times(youtube) -> Dict[str, int]:
         # If watch history playlist found, count video appearances in it
         if watch_history_id:
             item_request = youtube.playlistItems().list(part='snippet', playlistId=watch_history_id, maxResults=50)
-            requests_count = 0
-            max_requests = 500  # Fetch up to 25,000 most recent watches for better data
 
-            while item_request and requests_count < max_requests:
+            while item_request:
                 item_response = item_request.execute()
                 for item in item_response.get('items', []):
                     video_id = item['snippet']['resourceId'].get('videoId')
@@ -177,7 +175,6 @@ def count_music_watch_times(youtube) -> Dict[str, int]:
                         video_watch_counts[video_id] = video_watch_counts.get(video_id, 0) + 1
 
                 item_request = youtube.playlistItems().list_next(item_request, item_response)
-                requests_count += 1
         else:
             # Fallback: count from playlists if watch history not accessible
             playlist_request = youtube.playlists().list(part='id', mine=True, maxResults=50)

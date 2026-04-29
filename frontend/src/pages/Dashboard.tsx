@@ -9,7 +9,7 @@ import { VideoCard } from "@/components/VideoCard";
 import { Badge } from "@/components/ui/badge";
 import { FloatingChannels } from "@/components/FloatingChannels";
 import { MusicShowcase } from "@/components/MusicShowcase";
-import { Youtube, Link as LinkIcon, LogOut, Loader2, Copy, Check, TrendingUp, Video, Music, List, ChevronDown } from "lucide-react";
+import { Youtube, Link as LinkIcon, LogOut, Loader2, Copy, Check, TrendingUp, Video, Music, List, ChevronDown, RefreshCw } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { Footer } from "@/components/Footer";
 import { authClient, clearTokens, isAuthenticated, saveTokens } from "@/lib/auth";
@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 const Dashboard = () => {
   const [userData, setUserData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [generatingLink, setGeneratingLink] = useState(false);
   const [shareLink, setShareLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -26,6 +27,36 @@ const Dashboard = () => {
   const [expandedPlaylists, setExpandedPlaylists] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Sync user data from YouTube (full fetch on first sync, incremental on subsequent)
+  const syncUserData = async () => {
+    setSyncing(true);
+    try {
+      const response = await authClient.post("/data/sync");
+      console.log(`✅ ${response.data.sync_type} sync completed`);
+      setUserData({
+        subscriptions: response.data.subscriptions,
+        subscription_genres: response.data.subscription_genres,
+        saved_videos: response.data.saved_videos,
+        music_listened: response.data.music_listened,
+        video_genres: response.data.video_genres,
+        playlists: response.data.playlists,
+      });
+      toast({
+        title: `${response.data.sync_type} Sync Complete`,
+        description: response.data.message,
+      });
+    } catch (error: any) {
+      console.error("❌ Error syncing data:", error);
+      toast({
+        title: "Sync Failed",
+        description: error.response?.data?.detail || "Failed to sync your YouTube data",
+        variant: "destructive",
+      });
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   useEffect(() => {
     console.log("Dashboard mounted. Current URL:", window.location.href);
@@ -56,13 +87,19 @@ const Dashboard = () => {
       return;
     }
 
-    console.log("✅ User authenticated, fetching data");
+    console.log("✅ User authenticated, fetching cached data");
 
     const fetchData = async () => {
       try {
         const response = await authClient.get("/data/me");
-        console.log("✅ User data fetched successfully");
+        console.log("✅ Data loaded from cache");
         setUserData(response.data);
+
+        // If no cached data, trigger sync
+        if (!response.data.cached && response.data.message?.includes('No data cached')) {
+          console.log("ℹ️ No cached data found, triggering sync...");
+          setTimeout(() => syncUserData(), 500);
+        }
       } catch (error: any) {
         console.error("❌ Error fetching user data:", error);
         toast({
@@ -155,56 +192,85 @@ const Dashboard = () => {
         {/* Action Card */}
         <Card className="mb-12 p-8 border-border/50">
           <div className="text-center space-y-6">
-            <h2 className="text-3xl font-bold text-foreground">Start a Comparison</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Generate a unique link to compare your YouTube preferences with friends. Share it, and get instant compatibility results.
-            </p>
+            <div className="space-y-2">
+              <h2 className="text-3xl font-bold text-foreground">Your YouTube Profile</h2>
+              <p className="text-sm text-muted-foreground">Last synced: {userData?.last_synced_at ? new Date(userData.last_synced_at).toLocaleDateString() : 'Never'}</p>
+            </div>
 
-            {!shareLink ? (
+            <div className="flex gap-3 justify-center flex-wrap">
               <Button
-                onClick={handleGenerateLink}
-                disabled={generatingLink}
+                onClick={syncUserData}
+                disabled={syncing}
+                variant="outline"
                 size="lg"
                 className="text-base px-8 py-6"
               >
-                {generatingLink ? (
+                {syncing ? (
                   <>
                     <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Generating Link...
+                    Syncing...
                   </>
                 ) : (
                   <>
-                    <LinkIcon className="w-5 h-5 mr-2" />
-                    Create Comparison Link
+                    <RefreshCw className="w-5 h-5 mr-2" />
+                    Refresh YouTube Data
                   </>
                 )}
               </Button>
-            ) : (
-              <div className="space-y-4 max-w-2xl mx-auto">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={shareLink}
-                    readOnly
-                    className="flex-1 px-4 py-3 rounded-lg bg-background border border-border text-sm font-mono"
-                  />
-                  <Button onClick={handleCopyLink} className="gap-2">
-                    {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                    {copied ? "Copied" : "Copy"}
-                  </Button>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Share this link with a friend. When they sign in, you'll both see your compatibility results.
+
+              <div>
+                <h3 className="text-lg font-semibold text-foreground mb-4">Compare with Friends</h3>
+                <p className="text-muted-foreground max-w-2xl mx-auto mb-6">
+                  Generate a unique link to compare your YouTube preferences with friends. Share it, and get instant compatibility results.
                 </p>
-                <Button
-                  onClick={() => setShareLink(null)}
-                  variant="outline"
-                  size="sm"
-                >
-                  Create Another Link
-                </Button>
+
+                {!shareLink ? (
+                  <Button
+                    onClick={handleGenerateLink}
+                    disabled={generatingLink}
+                    size="lg"
+                    className="text-base px-8 py-6"
+                  >
+                    {generatingLink ? (
+                      <>
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                        Generating Link...
+                      </>
+                    ) : (
+                      <>
+                        <LinkIcon className="w-5 h-5 mr-2" />
+                        Create Comparison Link
+                      </>
+                    )}
+                  </Button>
+                ) : (
+                  <div className="space-y-4 max-w-2xl mx-auto">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={shareLink}
+                        readOnly
+                        className="flex-1 px-4 py-3 rounded-lg bg-background border border-border text-sm font-mono"
+                      />
+                      <Button onClick={handleCopyLink} className="gap-2">
+                        {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                        {copied ? "Copied" : "Copy"}
+                      </Button>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Share this link with a friend. When they sign in, you'll both see your compatibility results.
+                    </p>
+                    <Button
+                      onClick={() => setShareLink(null)}
+                      variant="outline"
+                      size="sm"
+                    >
+                      Create Another Link
+                    </Button>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
         </Card>
 

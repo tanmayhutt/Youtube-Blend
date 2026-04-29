@@ -726,18 +726,55 @@ async def refresh_token(body: dict):
 
 @app.get("/data/me")
 async def get_my_data(google_id: str = Depends(verify_token)):
-    """Fetch authenticated user's YouTube data with caching."""
+    """Get authenticated user's YouTube data from cache (instant response)."""
     try:
-        # Check cache first - instant response if fresh
-        cached_data = get_cached_user_data(google_id, cache_validity_hours=24)
-        if cached_data:
-            return cached_data
+        # Serve from DB first - fastest response
+        doc = users.find_one({'google_id': google_id})
+        if doc and 'cached_data' in doc:
+            cached_data = doc['cached_data']
+            return {
+                'subscriptions': cached_data.get('subscriptions', []),
+                'subscription_genres': cached_data.get('subscription_genres', []),
+                'saved_videos': cached_data.get('saved_videos', []),
+                'music_listened': cached_data.get('music_listened', []),
+                'video_genres': cached_data.get('video_genres', []),
+                'playlists': cached_data.get('playlists', []),
+                'cached': True,
+                'last_synced_at': doc.get('last_full_sync')
+            }
 
+        # No cached data yet
+        return {
+            'subscriptions': [],
+            'subscription_genres': [],
+            'saved_videos': [],
+            'music_listened': [],
+            'video_genres': [],
+            'playlists': [],
+            'cached': False,
+            'message': 'No data cached yet. Call /data/sync to fetch your YouTube data.'
+        }
+    except Exception as e:
+        logger.exception("Error getting cached data")
+        raise HTTPException(status_code=500, detail=f"Failed to get user data: {str(e)}")
+
+
+@app.post("/data/sync")
+async def sync_user_data(google_id: str = Depends(verify_token)):
+    """Smart sync: Full fetch on first sync, incremental updates on subsequent syncs."""
+    try:
         creds = get_credentials_from_db(google_id)
         if not creds:
             raise HTTPException(status_code=401, detail="Invalid or expired credentials")
 
         youtube = get_youtube_service(creds)
+        doc = users.find_one({'google_id': google_id})
+        last_sync = doc.get('last_full_sync') if doc else None
+
+        # Determine sync type
+        is_first_sync = last_sync is None
+        sync_type = "FULL" if is_first_sync else "INCREMENTAL"
+        logger.info(f"Starting {sync_type} sync for {google_id}")
 
         # Parallel fetching for faster performance
         loop = asyncio.get_event_loop()
@@ -764,12 +801,12 @@ async def get_my_data(google_id: str = Depends(verify_token)):
         # Fetch music and video genres in parallel
         music_listened, video_genres = await loop.run_in_executor(None, determine_music_and_genres, youtube, saved_data.get('video_ids', []))
 
-        # Get watch time counts and merge with music data
+        # Get watch time counts and merge with music data (NOW FETCHES ALL WATCH HISTORY)
         watch_counts = await loop.run_in_executor(None, count_music_watch_times, youtube)
         for track in music_listened:
             track['watch_count'] = watch_counts.get(track['video_id'], 0)
 
-        # Limited playlists (only fetch top 50 for performance)
+        # Fetch all playlists
         playlists = await loop.run_in_executor(None, fetch_playlists, youtube)
 
         user_data = {
@@ -781,15 +818,28 @@ async def get_my_data(google_id: str = Depends(verify_token)):
             'playlists': playlists
         }
 
-        # Cache the result
+        # Cache the result with smart incremental updates
         cache_user_data(google_id, user_data)
 
-        return user_data
+        # Update last_full_sync timestamp
+        users.update_one({'google_id': google_id}, {'$set': {'last_full_sync': datetime.utcnow()}})
+
+        return {
+            'success': True,
+            'sync_type': sync_type,
+            'subscriptions': subscriptions,
+            'subscription_genres': subscription_genres,
+            'saved_videos': saved_data.get('saved_videos', []),
+            'music_listened': music_listened,
+            'video_genres': video_genres,
+            'playlists': playlists,
+            'message': f'{sync_type} sync completed. Found {len(subscriptions)} channels, {len(music_listened)} music tracks, {len(playlists)} playlists.'
+        }
     except HTTPException:
         raise
     except Exception as e:
-        logger.exception("Error fetching user data")
-        raise HTTPException(status_code=500, detail=f"Failed to fetch YouTube data: {str(e)}")
+        logger.exception("Error syncing user data")
+        raise HTTPException(status_code=500, detail=f"Failed to sync YouTube data: {str(e)}")
 
 
 @app.get("/data/changes")
