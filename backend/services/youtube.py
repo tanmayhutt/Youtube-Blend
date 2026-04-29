@@ -146,9 +146,10 @@ def fetch_playlists(youtube):
     return playlists
 
 def count_music_watch_times(youtube) -> Dict[str, int]:
-    """Counts how many times each music video appears in watch history.
-    More appearances in watch history = listened more times."""
+    """Counts how many times each video appears in watch history AND identifies music.
+    Returns dict with video_id -> watch_count mapping, with music metadata."""
     video_watch_counts = {}
+    music_data = {}  # Store full music metadata
     try:
         # Find watch history playlist (usually titled "Watch History")
         playlist_request = youtube.playlists().list(part='snippet,id', mine=True, maxResults=50)
@@ -175,6 +176,29 @@ def count_music_watch_times(youtube) -> Dict[str, int]:
                         video_watch_counts[video_id] = video_watch_counts.get(video_id, 0) + 1
 
                 item_request = youtube.playlistItems().list_next(item_request, item_response)
+
+            # Now fetch video details for all watched videos to identify music
+            if video_watch_counts:
+                for i in range(0, len(video_watch_counts), 50):
+                    batch_ids = list(video_watch_counts.keys())[i:i+50]
+                    try:
+                        video_request = youtube.videos().list(part='snippet,statistics', id=','.join(batch_ids))
+                        video_response = video_request.execute()
+                        for video in video_response.get('items', []):
+                            video_id = video['id']
+                            title = sanitize_string(video['snippet']['title'])
+                            category_id = video['snippet'].get('categoryId')
+                            is_music = category_id == '10' or any(keyword in title.lower() for keyword in ['song', 'music', 'album', 'track', 'playlist'])
+
+                            if is_music:
+                                music_data[video_id] = {
+                                    'title': title,
+                                    'video_id': video_id,
+                                    'thumbnail_url': video['snippet']['thumbnails'].get('medium', {}).get('url', ''),
+                                    'watch_count': video_watch_counts[video_id]
+                                }
+                    except Exception as e:
+                        logger.error(f"Error fetching video details for music identification: {e}")
         else:
             # Fallback: count from playlists if watch history not accessible
             playlist_request = youtube.playlists().list(part='id', mine=True, maxResults=50)
@@ -195,4 +219,4 @@ def count_music_watch_times(youtube) -> Dict[str, int]:
     except Exception as e:
         logger.error(f"Error counting music watch times: {str(e)}")
 
-    return video_watch_counts
+    return video_watch_counts, music_data

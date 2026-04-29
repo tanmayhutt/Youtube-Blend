@@ -798,13 +798,23 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
         channel_ids = [s['channel_id'] for s in subscriptions] if subscriptions else []
         subscription_genres = await loop.run_in_executor(None, fetch_subscription_genres, youtube, channel_ids)
 
-        # Fetch music and video genres in parallel
-        music_listened, video_genres = await loop.run_in_executor(None, determine_music_and_genres, youtube, saved_data.get('video_ids', []))
+        # Fetch music and video genres from LIKED videos
+        other_music_listened, video_genres = await loop.run_in_executor(None, determine_music_and_genres, youtube, saved_data.get('video_ids', []))
 
-        # Get watch time counts and merge with music data (NOW FETCHES ALL WATCH HISTORY)
-        watch_counts = await loop.run_in_executor(None, count_music_watch_times, youtube)
-        for track in music_listened:
-            track['watch_count'] = watch_counts.get(track['video_id'], 0)
+        # Get watch time counts from WATCH HISTORY (includes all music watched, not just liked)
+        watch_counts, music_from_history = await loop.run_in_executor(None, count_music_watch_times, youtube)
+
+        # Combine music: watch history music + liked music (if not in history)
+        music_listened = list(music_from_history.values())  # Start with all music from watch history
+
+        # Add any liked music that's not already in watch history
+        for track in other_music_listened:
+            if track['video_id'] not in music_from_history:
+                track['watch_count'] = watch_counts.get(track['video_id'], 0)
+                music_listened.append(track)
+
+        # Sort by watch count (descending)
+        music_listened.sort(key=lambda x: x.get('watch_count', 0), reverse=True)
 
         # Fetch all playlists
         playlists = await loop.run_in_executor(None, fetch_playlists, youtube)

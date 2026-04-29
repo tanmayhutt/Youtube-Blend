@@ -87,28 +87,32 @@ const Dashboard = () => {
       return;
     }
 
-    console.log("✅ User authenticated, fetching cached data");
+    console.log("✅ User authenticated, checking cached data");
 
     const fetchData = async () => {
       try {
         const response = await authClient.get("/data/me");
-        console.log("✅ Data loaded from cache");
-        setUserData(response.data);
+        console.log("✅ Data response received", { cached: response.data.cached });
 
-        // If no cached data, trigger sync
-        if (!response.data.cached && response.data.message?.includes('No data cached')) {
-          console.log("ℹ️ No cached data found, triggering sync...");
-          setTimeout(() => syncUserData(), 500);
+        // If no cached data, immediately trigger sync
+        if (!response.data.cached) {
+          console.log("⏳ No cached data found, syncing YouTube data now...");
+          setLoading(false);
+          await syncUserData();
+        } else {
+          // Set cached data and show it
+          console.log("✅ Using cached data");
+          setUserData(response.data);
+          setLoading(false);
         }
       } catch (error: any) {
         console.error("❌ Error fetching user data:", error);
+        setLoading(false);
         toast({
           title: "Error",
           description: error.response?.data?.detail || "Failed to load your data",
           variant: "destructive",
         });
-      } finally {
-        setLoading(false);
       }
     };
 
