@@ -385,6 +385,10 @@ def cache_user_data(google_id: str, data: dict):
             f"+{added_vids} videos ({changed_vids} updated), "
             f"+{added_songs} songs ({changed_songs} updated)"
         )
+    except Exception as e:
+        logger.error(f"Failed to cache user data: {e}")
+
+def get_cached_user_data(google_id: str, cache_validity_hours: int = 24):
     """Retrieve cached user data if it's fresh (within cache_validity_hours)."""
     try:
         doc = users.find_one({'google_id': google_id})
