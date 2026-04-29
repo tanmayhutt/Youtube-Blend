@@ -10,6 +10,7 @@ from time import time
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 from pymongo import MongoClient
+import asyncio
 import os
 import requests
 import jwt as pyjwt
@@ -197,6 +198,43 @@ def get_credentials_from_db(google_id: str) -> Optional[Credentials]:
 @app.get("/")
 async def root():
     return {"message": "YouTube Blend API is LIVE"}
+
+def cache_user_data(google_id: str, data: dict):
+    """Store user's YouTube data in MongoDB with 24-hour TTL."""
+    try:
+        users.update_one(
+            {'google_id': google_id},
+            {'$set': {
+                'cached_data': data,
+                'cached_at': datetime.utcnow()
+            }}
+        )
+        logger.info(f"Cached data for user {google_id}")
+    except Exception as e:
+        logger.error(f"Failed to cache user data: {e}")
+
+def get_cached_user_data(google_id: str, cache_validity_hours: int = 24):
+    """Retrieve cached user data if it's fresh (within cache_validity_hours)."""
+    try:
+        doc = users.find_one({'google_id': google_id})
+        if not doc or 'cached_data' not in doc:
+            return None
+
+        cached_at = doc.get('cached_at')
+        if not cached_at:
+            return None
+
+        # Check if cache is fresh
+        age = (datetime.utcnow() - cached_at).total_seconds() / 3600  # hours
+        if age < cache_validity_hours:
+            logger.info(f"Using cached data for user {google_id} (age: {age:.1f}h)")
+            return doc['cached_data']
+
+        logger.info(f"Cache expired for user {google_id} (age: {age:.1f}h)")
+        return None
+    except Exception as e:
+        logger.error(f"Failed to retrieve cached data: {e}")
+        return None
 
 @app.get("/auth/login")
 async def login(next: str = None, comparison_id: str = None):
@@ -514,34 +552,65 @@ async def refresh_token(body: dict):
 
 @app.get("/data/me")
 async def get_my_data(google_id: str = Depends(verify_token)):
-    """Fetch authenticated user's YouTube data."""
+    """Fetch authenticated user's YouTube data with caching."""
     try:
+        # Check cache first - instant response if fresh
+        cached_data = get_cached_user_data(google_id, cache_validity_hours=24)
+        if cached_data:
+            return cached_data
+
         creds = get_credentials_from_db(google_id)
         if not creds:
             raise HTTPException(status_code=401, detail="Invalid or expired credentials")
 
         youtube = get_youtube_service(creds)
 
-        # Fetch all data
-        subscriptions = fetch_subscriptions(youtube)
-        subscription_genres = fetch_subscription_genres(youtube, [s['channel_id'] for s in subscriptions])
-        saved_data = fetch_saved_videos(youtube)
-        music_listened, video_genres = determine_music_and_genres(youtube, saved_data['video_ids'])
-        playlists = fetch_playlists(youtube)
+        # Parallel fetching for faster performance
+        loop = asyncio.get_event_loop()
+
+        # Run these in parallel instead of sequentially
+        subscriptions, saved_data = await asyncio.gather(
+            loop.run_in_executor(None, fetch_subscriptions, youtube),
+            loop.run_in_executor(None, fetch_saved_videos, youtube),
+            return_exceptions=True
+        )
+
+        # Handle any exceptions
+        if isinstance(subscriptions, Exception):
+            logger.error(f"Error fetching subscriptions: {subscriptions}")
+            subscriptions = []
+        if isinstance(saved_data, Exception):
+            logger.error(f"Error fetching saved videos: {saved_data}")
+            saved_data = {'video_ids': [], 'saved_videos': []}
+
+        # Fetch genres for subscriptions
+        channel_ids = [s['channel_id'] for s in subscriptions] if subscriptions else []
+        subscription_genres = await loop.run_in_executor(None, fetch_subscription_genres, youtube, channel_ids)
+
+        # Fetch music and video genres in parallel
+        music_listened, video_genres = await loop.run_in_executor(None, determine_music_and_genres, youtube, saved_data.get('video_ids', []))
 
         # Get watch time counts and merge with music data
-        watch_counts = count_music_watch_times(youtube)
+        watch_counts = await loop.run_in_executor(None, count_music_watch_times, youtube)
         for track in music_listened:
             track['watch_count'] = watch_counts.get(track['video_id'], 0)
 
-        return {
+        # Limited playlists (only fetch top 50 for performance)
+        playlists = await loop.run_in_executor(None, fetch_playlists, youtube)
+
+        user_data = {
             'subscriptions': subscriptions,
             'subscription_genres': subscription_genres,
-            'saved_videos': saved_data['saved_videos'],
+            'saved_videos': saved_data.get('saved_videos', []),
             'music_listened': music_listened,
             'video_genres': video_genres,
             'playlists': playlists
         }
+
+        # Cache the result
+        cache_user_data(google_id, user_data)
+
+        return user_data
     except HTTPException:
         raise
     except Exception as e:
@@ -553,29 +622,53 @@ async def get_my_data(google_id: str = Depends(verify_token)):
 async def generate_comparison_link(google_id: str = Depends(verify_token)):
     """Generate a shareable comparison link for the authenticated user."""
     try:
-        # Fetch user's data
-        creds = get_credentials_from_db(google_id)
-        if not creds:
-            raise HTTPException(status_code=401, detail="Invalid or expired credentials")
+        # Use cached data if available to speed up link generation
+        cached_data = get_cached_user_data(google_id, cache_validity_hours=24)
 
-        youtube = get_youtube_service(creds)
+        if cached_data:
+            user1_data = {
+                'subscriptions': cached_data.get('subscriptions', []),
+                'subscription_genres': cached_data.get('subscription_genres', []),
+                'saved_videos': cached_data.get('saved_videos', []),
+                'music_listened': cached_data.get('music_listened', []),
+                'video_genres': cached_data.get('video_genres', [])
+            }
+        else:
+            # Fetch user's data with parallel optimization
+            creds = get_credentials_from_db(google_id)
+            if not creds:
+                raise HTTPException(status_code=401, detail="Invalid or expired credentials")
 
-        subscriptions = fetch_subscriptions(youtube)
-        subscription_genres = fetch_subscription_genres(youtube, [s['channel_id'] for s in subscriptions])
-        saved_data = fetch_saved_videos(youtube)
-        music_listened, video_genres = determine_music_and_genres(youtube, saved_data['video_ids'])
+            youtube = get_youtube_service(creds)
 
-        user1_data = {
-            'subscriptions': subscriptions,
-            'subscription_genres': subscription_genres,
-            'saved_videos': saved_data['saved_videos'],
-            'music_listened': music_listened,
-            'video_genres': video_genres
-        }
+            # Parallel fetching
+            loop = asyncio.get_event_loop()
+            subscriptions, saved_data = await asyncio.gather(
+                loop.run_in_executor(None, fetch_subscriptions, youtube),
+                loop.run_in_executor(None, fetch_saved_videos, youtube),
+                return_exceptions=True
+            )
+
+            if isinstance(subscriptions, Exception):
+                subscriptions = []
+            if isinstance(saved_data, Exception):
+                saved_data = {'video_ids': [], 'saved_videos': []}
+
+            channel_ids = [s['channel_id'] for s in subscriptions] if subscriptions else []
+            subscription_genres = await loop.run_in_executor(None, fetch_subscription_genres, youtube, channel_ids)
+            music_listened, video_genres = await loop.run_in_executor(None, determine_music_and_genres, youtube, saved_data.get('video_ids', []))
+
+            user1_data = {
+                'subscriptions': subscriptions,
+                'subscription_genres': subscription_genres,
+                'saved_videos': saved_data.get('saved_videos', []),
+                'music_listened': music_listened,
+                'video_genres': video_genres
+            }
 
         # Create comparison document with secure random code
         comparison_id = generate_secure_code()
-        csrf_token = secrets.token_urlsafe(32)  # CSRF protection token
+        csrf_token = secrets.token_urlsafe(32)
         frontend = os.getenv("FRONTEND_URL", "https://blend-youtube.onrender.com")
         share_link = f"{frontend.rstrip('/')}/compare/join/{comparison_id}"
 
@@ -583,11 +676,11 @@ async def generate_comparison_link(google_id: str = Depends(verify_token)):
             '_id': comparison_id,
             'user1_id': google_id,
             'user1_data': user1_data,
-            'csrf_token': csrf_token,  # For CSRF protection
-            'status': 'pending',  # pending -> ready -> completed
+            'csrf_token': csrf_token,
+            'status': 'pending',
             'created_at': datetime.utcnow(),
             'updated_at': datetime.utcnow(),
-            'expires_at': datetime.utcnow() + timedelta(hours=2)  # Link expires in 2 hours (was 7 days)
+            'expires_at': datetime.utcnow() + timedelta(hours=2)
         })
 
         return {'link': share_link, 'comparison_id': comparison_id}
@@ -760,4 +853,3 @@ async def auth_complete_fallback(code: str = None, next: str = None):
         </html>
         """
         return HTMLResponse(content=html, status_code=200)
-
