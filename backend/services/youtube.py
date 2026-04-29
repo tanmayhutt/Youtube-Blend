@@ -166,7 +166,7 @@ def count_music_watch_times(youtube) -> Dict[str, int]:
         if watch_history_id:
             item_request = youtube.playlistItems().list(part='snippet', playlistId=watch_history_id, maxResults=50)
             requests_count = 0
-            max_requests = 50  # Limit to ~2500 most recent watches
+            max_requests = 500  # Fetch up to 25,000 most recent watches for better data
 
             while item_request and requests_count < max_requests:
                 item_response = item_request.execute()

@@ -23,7 +23,7 @@ export const FloatingChannels = ({ channels, title }: FloatingChannelsProps) => 
         }
       `}</style>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-        {channels.slice(0, 15).map((channel: any, index: number) => (
+        {channels.map((channel: any, index: number) => (
           <div
             key={index}
             className="channel-item transition-all duration-300 hover:scale-105 hover:shadow-lg"
