@@ -199,68 +199,159 @@ def get_credentials_from_db(google_id: str) -> Optional[Credentials]:
 async def root():
     return {"message": "YouTube Blend API is LIVE"}
 
+def detect_item_changes(new_item: dict, old_item: dict) -> dict:
+    """Detect what fields changed between old and new item."""
+    changes = {}
+
+    # Check common fields that might change
+    comparable_fields = ['title', 'description', 'thumbnail_url', 'genre', 'watch_count']
+
+    for field in comparable_fields:
+        new_val = new_item.get(field)
+        old_val = old_item.get(field)
+
+        if new_val != old_val:
+            changes[field] = {
+                'old': old_val,
+                'new': new_val
+            }
+
+    return changes
+
 def cache_user_data(google_id: str, data: dict):
-    """Store user's YouTube data in MongoDB with timestamps for incremental sync."""
+    """Store user's YouTube data in MongoDB with smart incremental updates."""
     try:
         # Get existing data to merge
         existing_doc = users.find_one({'google_id': google_id})
         existing_data = existing_doc.get('cached_data', {}) if existing_doc else {}
 
         # Extract IDs from new and old data for comparison
-        new_sub_ids = {s['channel_id'] for s in data.get('subscriptions', [])}
-        old_sub_ids = {s['channel_id'] for s in existing_data.get('subscriptions', [])}
+        new_sub_ids = {s['channel_id']: s for s in data.get('subscriptions', [])}
+        old_sub_ids = {s['channel_id']: s for s in existing_data.get('subscriptions', [])}
 
-        new_video_ids = {v['video_id'] for v in data.get('saved_videos', [])}
-        old_video_ids = {v['video_id'] for v in existing_data.get('saved_videos', [])}
+        new_video_ids = {v['video_id']: v for v in data.get('saved_videos', [])}
+        old_video_ids = {v['video_id']: v for v in existing_data.get('saved_videos', [])}
 
-        new_music_ids = {m['video_id'] for m in data.get('music_listened', [])}
-        old_music_ids = {m['video_id'] for m in existing_data.get('music_listened', [])}
+        new_music_ids = {m['video_id']: m for m in data.get('music_listened', [])}
+        old_music_ids = {m['video_id']: m for m in existing_data.get('music_listened', [])}
 
-        # Mark new subscriptions
-        for sub in data.get('subscriptions', []):
-            if sub['channel_id'] not in old_sub_ids:
-                sub['added_at'] = datetime.utcnow()
+        # Process subscriptions with smart updates
+        updated_subscriptions = []
+        added_subs = 0
+        changed_subs = 0
+
+        for channel_id, new_sub in new_sub_ids.items():
+            old_sub = old_sub_ids.get(channel_id)
+
+            if not old_sub:
+                # New subscription
+                new_sub['added_at'] = datetime.utcnow()
+                new_sub['last_synced_at'] = datetime.utcnow()
+                added_subs += 1
             else:
-                # Keep original added_at if it existed
-                old_sub = next((s for s in existing_data.get('subscriptions', []) if s['channel_id'] == sub['channel_id']), None)
-                if old_sub and 'added_at' in old_sub:
-                    sub['added_at'] = old_sub['added_at']
-            sub['last_synced_at'] = datetime.utcnow()
+                # Existing subscription - check for changes
+                changes = detect_item_changes(new_sub, old_sub)
 
-        # Mark new videos
-        for video in data.get('saved_videos', []):
-            if video['video_id'] not in old_video_ids:
-                video['added_at'] = datetime.utcnow()
-            else:
-                old_video = next((v for v in existing_data.get('saved_videos', []) if v['video_id'] == video['video_id']), None)
-                if old_video and 'added_at' in old_video:
-                    video['added_at'] = old_video['added_at']
-            video['last_synced_at'] = datetime.utcnow()
+                if changes:
+                    # Keep original added_at, update the changed fields
+                    new_sub['added_at'] = old_sub.get('added_at', datetime.utcnow())
+                    new_sub['updated_at'] = datetime.utcnow()
+                    new_sub['last_synced_at'] = datetime.utcnow()
+                    new_sub['changes'] = changes
+                    changed_subs += 1
+                    logger.info(f"Updated subscription {channel_id}: {list(changes.keys())}")
+                else:
+                    # No changes, keep timestamps
+                    new_sub['added_at'] = old_sub.get('added_at', datetime.utcnow())
+                    new_sub['last_synced_at'] = datetime.utcnow()
 
-        # Mark new/updated music and track watch count changes
-        for music in data.get('music_listened', []):
-            if music['video_id'] not in old_music_ids:
-                music['added_at'] = datetime.utcnow()
-                music['first_watched_at'] = datetime.utcnow()
+            updated_subscriptions.append(new_sub)
+
+        # Process videos with smart updates
+        updated_videos = []
+        added_vids = 0
+        changed_vids = 0
+
+        for video_id, new_video in new_video_ids.items():
+            old_video = old_video_ids.get(video_id)
+
+            if not old_video:
+                # New video
+                new_video['added_at'] = datetime.utcnow()
+                new_video['last_synced_at'] = datetime.utcnow()
+                added_vids += 1
             else:
-                # Keep original timestamps
-                old_music = next((m for m in existing_data.get('music_listened', []) if m['video_id'] == music['video_id']), None)
-                if old_music:
-                    music['added_at'] = old_music.get('added_at', datetime.utcnow())
-                    music['first_watched_at'] = old_music.get('first_watched_at', datetime.utcnow())
-                    # Track if watch count increased
-                    old_count = old_music.get('watch_count', 0)
-                    new_count = music.get('watch_count', 0)
-                    if new_count > old_count:
-                        music['last_listened_at'] = datetime.utcnow()
-                        music['listen_increase'] = new_count - old_count
-            music['last_synced_at'] = datetime.utcnow()
+                # Existing video - check for changes
+                changes = detect_item_changes(new_video, old_video)
+
+                if changes:
+                    new_video['added_at'] = old_video.get('added_at', datetime.utcnow())
+                    new_video['updated_at'] = datetime.utcnow()
+                    new_video['last_synced_at'] = datetime.utcnow()
+                    new_video['changes'] = changes
+                    changed_vids += 1
+                    logger.info(f"Updated video {video_id}: {list(changes.keys())}")
+                else:
+                    new_video['added_at'] = old_video.get('added_at', datetime.utcnow())
+                    new_video['last_synced_at'] = datetime.utcnow()
+
+            updated_videos.append(new_video)
+
+        # Process music with smart updates and watch count tracking
+        updated_music = []
+        added_songs = 0
+        changed_songs = 0
+
+        for music_id, new_music in new_music_ids.items():
+            old_music = old_music_ids.get(music_id)
+
+            if not old_music:
+                # New song
+                new_music['added_at'] = datetime.utcnow()
+                new_music['first_watched_at'] = datetime.utcnow()
+                new_music['last_synced_at'] = datetime.utcnow()
+                added_songs += 1
+            else:
+                # Existing song - check for changes
+                changes = detect_item_changes(new_music, old_music)
+
+                # Also check if watch count increased
+                old_count = old_music.get('watch_count', 0)
+                new_count = new_music.get('watch_count', 0)
+
+                if new_count > old_count:
+                    changes['watch_count'] = {
+                        'old': old_count,
+                        'new': new_count,
+                        'increase': new_count - old_count
+                    }
+                    new_music['last_listened_at'] = datetime.utcnow()
+                    changed_songs += 1
+
+                if changes:
+                    new_music['added_at'] = old_music.get('added_at', datetime.utcnow())
+                    new_music['first_watched_at'] = old_music.get('first_watched_at', datetime.utcnow())
+                    new_music['updated_at'] = datetime.utcnow()
+                    new_music['last_synced_at'] = datetime.utcnow()
+                    new_music['changes'] = changes
+                    logger.info(f"Updated music {music_id}: {list(changes.keys())}")
+                else:
+                    new_music['added_at'] = old_music.get('added_at', datetime.utcnow())
+                    new_music['first_watched_at'] = old_music.get('first_watched_at', datetime.utcnow())
+                    new_music['last_synced_at'] = datetime.utcnow()
+
+            updated_music.append(new_music)
+
+        # Detect unsubscribed/removed items (in old but not in new)
+        removed_subs = set(old_sub_ids.keys()) - set(new_sub_ids.keys())
+        removed_vids = set(old_video_ids.keys()) - set(new_video_ids.keys())
+        removed_music = set(old_music_ids.keys()) - set(new_music_ids.keys())
 
         merged_data = {
-            'subscriptions': data.get('subscriptions', []),
+            'subscriptions': updated_subscriptions,
             'subscription_genres': data.get('subscription_genres', []),
-            'saved_videos': data.get('saved_videos', []),
-            'music_listened': data.get('music_listened', []),
+            'saved_videos': updated_videos,
+            'music_listened': updated_music,
             'video_genres': data.get('video_genres', []),
             'playlists': data.get('playlists', [])
         }
@@ -270,23 +361,30 @@ def cache_user_data(google_id: str, data: dict):
             {'$set': {
                 'cached_data': merged_data,
                 'cached_at': datetime.utcnow(),
-                'total_subscriptions': len(data.get('subscriptions', [])),
-                'total_videos': len(data.get('saved_videos', [])),
-                'total_music': len(data.get('music_listened', []))
+                'total_subscriptions': len(updated_subscriptions),
+                'total_videos': len(updated_videos),
+                'total_music': len(updated_music),
+                'sync_stats': {
+                    'added_subscriptions': added_subs,
+                    'changed_subscriptions': changed_subs,
+                    'removed_subscriptions': len(removed_subs),
+                    'added_videos': added_vids,
+                    'changed_videos': changed_vids,
+                    'removed_videos': len(removed_vids),
+                    'added_music': added_songs,
+                    'changed_music': changed_songs,
+                    'removed_music': len(removed_music)
+                }
             }}
         )
 
-        # Log what changed
-        new_subs = new_sub_ids - old_sub_ids
-        new_vids = new_video_ids - old_video_ids
-        new_songs = new_music_ids - old_music_ids
-
-        if new_subs or new_vids or new_songs:
-            logger.info(f"Synced for {google_id}: +{len(new_subs)} subs, +{len(new_vids)} videos, +{len(new_songs)} songs")
-    except Exception as e:
-        logger.error(f"Failed to cache user data: {e}")
-
-def get_cached_user_data(google_id: str, cache_validity_hours: int = 24):
+        # Log summary
+        logger.info(
+            f"Synced {google_id}: "
+            f"+{added_subs} subs ({changed_subs} updated), "
+            f"+{added_vids} videos ({changed_vids} updated), "
+            f"+{added_songs} songs ({changed_songs} updated)"
+        )
     """Retrieve cached user data if it's fresh (within cache_validity_hours)."""
     try:
         doc = users.find_one({'google_id': google_id})
@@ -692,47 +790,64 @@ async def get_my_data(google_id: str = Depends(verify_token)):
 
 @app.get("/data/changes")
 async def get_data_changes(google_id: str = Depends(verify_token)):
-    """Get what's NEW or CHANGED since last login (for incremental view)."""
+    """Get what's NEW or CHANGED since last sync (items with metadata updates)."""
     try:
         doc = users.find_one({'google_id': google_id})
         if not doc or 'cached_data' not in doc:
             return {
                 'new_subscriptions': [],
+                'updated_subscriptions': [],
                 'new_videos': [],
+                'updated_videos': [],
                 'new_music': [],
-                'changed_music': []
+                'updated_music': [],
+                'sync_stats': doc.get('sync_stats', {}) if doc else {},
+                'last_synced': None
             }
 
         cached_data = doc['cached_data']
+        sync_stats = doc.get('sync_stats', {})
 
-        # Filter items that were added recently (within last 24 hours)
-        now = datetime.utcnow()
-
+        # NEW items: have added_at, no updated_at
         new_subscriptions = [
             s for s in cached_data.get('subscriptions', [])
-            if 'added_at' in s and (now - s['added_at']).total_seconds() < 86400
+            if 'added_at' in s and 'updated_at' not in s
         ]
 
         new_videos = [
             v for v in cached_data.get('saved_videos', [])
-            if 'added_at' in v and (now - v['added_at']).total_seconds() < 86400
+            if 'added_at' in v and 'updated_at' not in v
         ]
 
         new_music = [
             m for m in cached_data.get('music_listened', [])
-            if 'added_at' in m and (now - m['added_at']).total_seconds() < 86400
+            if 'added_at' in m and 'updated_at' not in m
         ]
 
-        changed_music = [
+        # UPDATED items: have changes field (title, thumbnail, description changed, or watch count increased)
+        updated_subscriptions = [
+            s for s in cached_data.get('subscriptions', [])
+            if 'changes' in s
+        ]
+
+        updated_videos = [
+            v for v in cached_data.get('saved_videos', [])
+            if 'changes' in v
+        ]
+
+        updated_music = [
             m for m in cached_data.get('music_listened', [])
-            if 'listen_increase' in m and m['listen_increase'] > 0
+            if 'changes' in m
         ]
 
         return {
             'new_subscriptions': new_subscriptions,
+            'updated_subscriptions': updated_subscriptions,
             'new_videos': new_videos,
+            'updated_videos': updated_videos,
             'new_music': new_music,
-            'changed_music': changed_music,
+            'updated_music': updated_music,
+            'sync_stats': sync_stats,
             'last_synced': doc.get('cached_at')
         }
     except Exception as e:
