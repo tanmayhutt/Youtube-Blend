@@ -846,6 +846,9 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
             'saved_videos': saved_data.get('saved_videos', []),
             'music_listened': music_listened,
             'video_genres': video_genres,
+            'playlists': playlists
+        }
+
         # Store in DB (with incremental detection for subsequent syncs)
         cache_user_data(google_id, user_data)
 
