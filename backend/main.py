@@ -1435,6 +1435,70 @@ async def debug_fetch(google_id: str = Depends(verify_token)):
         return {'error': str(e)}
 
 
+@app.post("/data/test-simple-fetch")
+async def test_simple_fetch(google_id: str = Depends(verify_token)):
+    """BYPASS ALL DB LOGIC: Just fetch from YouTube, don't store anything. For testing if fetch functions work."""
+    try:
+        creds = get_credentials_from_db(google_id)
+        if not creds:
+            raise HTTPException(status_code=401, detail="No credentials found")
+
+        youtube = get_youtube_service(creds)
+        loop = asyncio.get_event_loop()
+
+        logger.info(f"🧪 TEST SYNC (no DB) for {google_id}")
+
+        # Fetch ALL YouTube data in parallel
+        logger.info("⏳ Fetching fresh data from YouTube (NO DB STORE)...")
+        subscriptions, saved_data = await asyncio.gather(
+            loop.run_in_executor(None, fetch_subscriptions, youtube),
+            loop.run_in_executor(None, fetch_saved_videos, youtube),
+            return_exceptions=True
+        )
+
+        # Handle exceptions from parallel fetch
+        if isinstance(subscriptions, Exception):
+            logger.error(f"❌ Error fetching subscriptions: {subscriptions}")
+            subscriptions = []
+        if isinstance(saved_data, Exception):
+            logger.error(f"❌ Error fetching saved videos: {saved_data}")
+            saved_data = {'video_ids': [], 'saved_videos': []}
+
+        logger.info(f"✅ Fresh YouTube data fetched:")
+        logger.info(f"   - {len(subscriptions)} subscriptions")
+        logger.info(f"   - {len(saved_data.get('saved_videos', []))} saved videos")
+
+        # Determine music and genres from saved videos
+        music_listened, video_genres = determine_music_and_genres(youtube, saved_data.get('video_ids', []))
+
+        # Fetch subscription genres in parallel
+        subscription_genres = await loop.run_in_executor(None, fetch_subscription_genres, youtube, subscriptions)
+
+        # Fetch all playlists
+        playlists = await loop.run_in_executor(None, fetch_playlists, youtube)
+
+        logger.info(f"✅ TEST SYNC COMPLETE (data NOT saved to DB):")
+        logger.info(f"   📊 {len(subscriptions)} channels")
+        logger.info(f"   🎬 {len(saved_data.get('saved_videos', []))} saved videos")
+        logger.info(f"   🎵 {len(music_listened)} music tracks")
+        logger.info(f"   📁 {len(playlists)} playlists")
+
+        return {
+            'success': True,
+            'test': 'simple_fetch_no_db',
+            'message': 'This data was fetched from YouTube but NOT saved to DB. Use this to verify fetch functions work.',
+            'subscriptions': subscriptions,
+            'subscription_genres': subscription_genres,
+            'saved_videos': saved_data.get('saved_videos', []),
+            'music_listened': music_listened,
+            'video_genres': video_genres,
+            'playlists': playlists,
+        }
+    except Exception as e:
+        logger.exception(f"Error in test-simple-fetch: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed: {str(e)}")
+
+
 @app.get("/compare/generate_link")
 async def generate_comparison_link(google_id: str = Depends(verify_token)):
     """Generate a shareable comparison link for the authenticated user."""
