@@ -28,6 +28,29 @@ const Dashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  // Force clear cache and require fresh login with new scopes
+  const forceRefreshWithNewScopes = async () => {
+    try {
+      await authClient.post("/data/force-refresh");
+      toast({
+        title: "Cache Cleared",
+        description: "Cache cleared successfully. Please sign out and sign in again to sync all YouTube data with new permissions.",
+      });
+      // Optionally sign out the user
+      setTimeout(() => {
+        clearTokens();
+        navigate("/");
+      }, 1500);
+    } catch (error: any) {
+      console.error("Error clearing cache:", error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.detail || "Failed to clear cache",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Sync user data from YouTube (full fetch on first sync, incremental on subsequent)
   const syncUserData = async () => {
     setSyncing(true);
@@ -220,6 +243,16 @@ const Dashboard = () => {
                     Refresh YouTube Data
                   </>
                 )}
+              </Button>
+
+              <Button
+                onClick={forceRefreshWithNewScopes}
+                variant="outline"
+                size="lg"
+                className="text-base px-8 py-6"
+              >
+                <RefreshCw className="w-5 h-5 mr-2" />
+                Full Sync (Clear Cache)
               </Button>
 
               <div>

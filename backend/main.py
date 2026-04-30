@@ -872,6 +872,32 @@ async def debug_data(google_id: str = Depends(verify_token)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/data/force-refresh")
+async def force_refresh(google_id: str = Depends(verify_token)):
+    """Force clear all cache and credentials to trigger fresh full sync."""
+    try:
+        # Clear all cached data to force fresh authentication with new scopes
+        result = users.update_one(
+            {'google_id': google_id},
+            {
+                '$unset': {
+                    'credentials': "",
+                    'token_data': "",
+                    'cached_data': "",
+                    'last_full_sync': ""
+                }
+            }
+        )
+        logger.info(f"🔄 Force refresh: Cleared cache for {google_id}")
+        return {
+            'success': True,
+            'message': 'Cache cleared. Please sign out and sign in again for a complete fresh sync with all YouTube data.'
+        }
+    except Exception as e:
+        logger.exception("Error forcing refresh")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/data/changes")
 async def get_data_changes(google_id: str = Depends(verify_token)):
     """Get what's NEW or CHANGED since last sync (items with metadata updates)."""
