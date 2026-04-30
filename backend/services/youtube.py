@@ -127,14 +127,6 @@ def fetch_saved_videos(youtube):
         logger.error(f"❌ Error fetching saved videos: {str(e)}")
 
     return {'saved_videos': saved_videos, 'video_ids': video_ids}
-                            })
-                            video_ids.append(video_id)
-                    item_request = youtube.playlistItems().list_next(item_request, item_response)
-            playlist_request = youtube.playlists().list_next(playlist_request, playlist_response)
-        logger.info(f"✅ Final saved videos total: {len(saved_videos)}")
-    except Exception as e:
-        logger.error(f"Error fetching saved videos: {str(e)}")
-    return {'saved_videos': saved_videos, 'video_ids': video_ids}
 
 def determine_music_and_genres(youtube, video_ids: List[str]) -> Tuple[List[Dict], List[str]]:
     """Identifies music videos and genres from video IDs."""
