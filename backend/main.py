@@ -816,6 +816,10 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
         logger.info("⏳ Fetching playlists...")
         playlists = await loop.run_in_executor(None, fetch_playlists, youtube)
         logger.info(f"✅ Got {len(playlists)} playlists")
+
+        # Build complete user data
+        user_data = {
+            'subscriptions': subscriptions,
             'subscription_genres': subscription_genres,
             'saved_videos': saved_data.get('saved_videos', []),
             'music_listened': music_listened,
