@@ -840,6 +840,34 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
         raise
     except Exception as e:
         logger.exception(f"Error syncing user data: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to sync YouTube data: {str(e)}")
+
+
+@app.get("/data/debug")
+async def debug_data(google_id: str = Depends(verify_token)):
+    """DEBUG: Show exactly what's cached in the database."""
+    try:
+        doc = users.find_one({'google_id': google_id})
+        if not doc:
+            return {'error': 'User not found'}
+
+        cached_data = doc.get('cached_data', {})
+
+        return {
+            'user_found': True,
+            'total_subscriptions': len(cached_data.get('subscriptions', [])),
+            'total_saved_videos': len(cached_data.get('saved_videos', [])),
+            'total_music_tracks': len(cached_data.get('music_listened', [])),
+            'total_playlists': len(cached_data.get('playlists', [])),
+            'genres_count': len(cached_data.get('video_genres', [])),
+            'last_synced': doc.get('last_full_sync'),
+            'sync_stats': doc.get('sync_stats', {}),
+            'message': 'This is the complete cached data. Check counts to see what was fetched and stored.'
+        }
+    except Exception as e:
+        logger.exception("Error getting debug data")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.get("/data/changes")
 async def get_data_changes(google_id: str = Depends(verify_token)):
