@@ -22,18 +22,24 @@ def fetch_subscriptions(youtube):
     """Fetches user's subscriptions."""
     subscriptions = []
     try:
+        logger.info("👥 Starting fetch_subscriptions...")
         request = youtube.subscriptions().list(part='snippet', mine=True, maxResults=50)
+        batch_num = 0
         while request:
+            batch_num += 1
             response = request.execute()
-            for sub in response.get('items', []):
-                subscriptions.append({
-                    'title': sanitize_string(sub['snippet']['title']),
-                    'channel_id': sub['snippet']['resourceId']['channelId'],
-                    'logo_url': sub['snippet']['thumbnails'].get('medium', {}).get('url', '')
-                })
+            batch_size = len(response.get('items', []))
+            subscriptions.extend([{
+                'title': sanitize_string(sub['snippet']['title']),
+                'channel_id': sub['snippet']['resourceId']['channelId'],
+                'logo_url': sub['snippet']['thumbnails'].get('medium', {}).get('url', '')
+            } for sub in response.get('items', [])])
+            logger.info(f"  Batch {batch_num}: {batch_size} subscriptions (total: {len(subscriptions)})")
             request = youtube.subscriptions().list_next(request, response)
+        logger.info(f"✅ fetch_subscriptions complete: {len(subscriptions)} total")
     except Exception as e:
-        logger.error(f"Error fetching subscriptions: {str(e)}")
+        logger.error(f"❌ Error fetching subscriptions: {str(e)}")
+        logger.exception("Full traceback for subscriptions:")
     return subscriptions
 
 def fetch_subscription_genres(youtube, channel_ids: List[str]):
@@ -125,7 +131,10 @@ def fetch_saved_videos(youtube):
 
     except Exception as e:
         logger.error(f"❌ Error fetching saved videos: {str(e)}")
+        logger.exception("Full traceback:")  # This logs the full stack trace
+        # Still return what we have so far
 
+    logger.info(f"🎬 fetch_saved_videos returning: {len(saved_videos)} videos, {len(video_ids)} IDs")
     return {'saved_videos': saved_videos, 'video_ids': video_ids}
 
 def determine_music_and_genres(youtube, video_ids: List[str]) -> Tuple[List[Dict], List[str]]:
@@ -173,9 +182,9 @@ def determine_music_and_genres(youtube, video_ids: List[str]) -> Tuple[List[Dict
         logger.info(f"✅ Music identification complete: Found {len(music_listened)} music tracks from {len(video_ids)} videos")
     except Exception as e:
         logger.error(f"❌ Error determining music/genres: {str(e)}")
+        logger.exception("Full traceback for music identification:")
 
-    return music_listened, list(set(video_genres))
-
+    logger.info(f"🎵 determine_music_and_genres returning: {len(music_listened)} music, {len(set(video_genres))} genres")
 def fetch_playlists(youtube):
     """Fetches user's playlists."""
     playlists = []

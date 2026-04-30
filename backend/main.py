@@ -954,6 +954,49 @@ async def test_liked_videos(google_id: str = Depends(verify_token)):
         }
 
 
+@app.get("/data/full-diagnosis")
+async def full_diagnosis(google_id: str = Depends(verify_token)):
+    """Complete diagnostic showing everything that's cached."""
+    try:
+        doc = users.find_one({'google_id': google_id})
+
+        if not doc:
+            return {'error': 'User document not found in database'}
+
+        cached_data = doc.get('cached_data', {})
+
+        return {
+            'user_id': google_id,
+            'has_cached_data': 'cached_data' in doc,
+            'has_credentials': 'credentials' in doc or 'token_data' in doc,
+            'last_full_sync': doc.get('last_full_sync'),
+            'cached_at': doc.get('cached_at'),
+
+            'data_counts': {
+                'subscriptions': len(cached_data.get('subscriptions', [])),
+                'subscription_genres': len(cached_data.get('subscription_genres', [])),
+                'saved_videos': len(cached_data.get('saved_videos', [])),
+                'music_listened': len(cached_data.get('music_listened', [])),
+                'video_genres': len(cached_data.get('video_genres', [])),
+                'playlists': len(cached_data.get('playlists', [])),
+            },
+
+            'sync_stats': doc.get('sync_stats', {}),
+
+            'sample_data': {
+                'first_subscription': cached_data.get('subscriptions', [{}])[0] if cached_data.get('subscriptions') else None,
+                'first_saved_video': cached_data.get('saved_videos', [{}])[0] if cached_data.get('saved_videos') else None,
+                'first_music_track': cached_data.get('music_listened', [{}])[0] if cached_data.get('music_listened') else None,
+                'first_playlist': cached_data.get('playlists', [{}])[0] if cached_data.get('playlists') else None,
+            },
+
+            'message': 'Complete diagnostic data. Check data_counts to see what was fetched and stored.'
+        }
+    except Exception as e:
+        logger.exception("Error in diagnosis")
+        return {'error': str(e)}
+
+
 @app.get("/data/changes")
 async def get_data_changes(google_id: str = Depends(verify_token)):
     """Get what's NEW or CHANGED since last sync (items with metadata updates)."""
