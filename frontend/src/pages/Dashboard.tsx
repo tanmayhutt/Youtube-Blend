@@ -28,60 +28,6 @@ const Dashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Force clear cache and require fresh login with new scopes
-  const forceRefreshWithNewScopes = async () => {
-    try {
-      await authClient.post("/data/force-refresh");
-      toast({
-        title: "Cache Cleared",
-        description: "Cache cleared successfully. Please sign out and sign in again to sync all YouTube data with new permissions.",
-      });
-      // Optionally sign out the user
-      setTimeout(() => {
-        clearTokens();
-        navigate("/");
-      }, 1500);
-    } catch (error: any) {
-      console.error("Error clearing cache:", error);
-      toast({
-        title: "Error",
-        description: error.response?.data?.detail || "Failed to clear cache",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Force full sync - clears cache and re-fetches everything
-  const forceFullSync = async () => {
-    setSyncing(true);
-    try {
-      console.log("🔥 Starting force full sync...");
-      const response = await authClient.post("/data/force-full-sync");
-      console.log("✅ Force full sync completed");
-      setUserData({
-        subscriptions: response.data.subscriptions,
-        subscription_genres: response.data.subscription_genres,
-        saved_videos: response.data.saved_videos,
-        music_listened: response.data.music_listened,
-        video_genres: response.data.video_genres,
-        playlists: response.data.playlists,
-      });
-      toast({
-        title: "Force Full Sync Complete",
-        description: response.data.message,
-      });
-    } catch (error: any) {
-      console.error("❌ Force full sync failed:", error);
-      toast({
-        title: "Force Sync Failed",
-        description: error.response?.data?.detail || "Failed to force sync",
-        variant: "destructive",
-      });
-    } finally {
-      setSyncing(false);
-    }
-  };
-
   // Sync user data from YouTube (full fetch on first sync, incremental on subsequent)
   const syncUserData = async () => {
     setSyncing(true);
@@ -263,7 +209,6 @@ const Dashboard = () => {
               <Button
                 onClick={syncUserData}
                 disabled={syncing}
-                variant="outline"
                 size="lg"
                 className="text-base px-8 py-6"
               >
@@ -275,45 +220,17 @@ const Dashboard = () => {
                 ) : (
                   <>
                     <RefreshCw className="w-5 h-5 mr-2" />
-                    Refresh YouTube Data
+                    Sync YouTube Data
                   </>
                 )}
               </Button>
 
-              <Button
-                onClick={forceRefreshWithNewScopes}
-                variant="outline"
-                size="lg"
-                className="text-base px-8 py-6"
-              >
-                <RefreshCw className="w-5 h-5 mr-2" />
-                Full Sync (Clear Cache)
-              </Button>
-
-              <Button
-                onClick={forceFullSync}
-                disabled={syncing}
-                variant="destructive"
-                size="lg"
-                className="text-base px-8 py-6"
-              >
-                {syncing ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Syncing...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="w-5 h-5 mr-2" />
-                    Force Full Sync (Re-fetch All)
-                  </>
-                )}
-              </Button>
+              <div className="border-l border-border"></div>
 
               <div>
                 <h3 className="text-lg font-semibold text-foreground mb-4">Compare with Friends</h3>
                 <p className="text-muted-foreground max-w-2xl mx-auto mb-6">
-                  Generate a unique link to compare your YouTube preferences with friends. Share it, and get instant compatibility results.
+                  Generate a unique link to compare your YouTube preferences with friends.
                 </p>
 
                 {!shareLink ? (
@@ -349,9 +266,6 @@ const Dashboard = () => {
                         {copied ? "Copied" : "Copy"}
                       </Button>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      Share this link with a friend. When they sign in, you'll both see your compatibility results.
-                    </p>
                     <Button
                       onClick={() => setShareLink(null)}
                       variant="outline"

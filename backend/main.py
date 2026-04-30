@@ -1309,6 +1309,132 @@ async def api_health_check(google_id: str = Depends(verify_token)):
         return {'error': str(e), 'status': 'CRITICAL'}
 
 
+@app.get("/data/debug-fetch")
+async def debug_fetch(google_id: str = Depends(verify_token)):
+    """Debug endpoint: Manually call fetch functions to see exact step-by-step what happens."""
+    try:
+        creds = get_credentials_from_db(google_id)
+        if not creds:
+            return {'error': 'No credentials found'}
+
+        youtube = get_youtube_service(creds)
+        results = {
+            'timestamp': datetime.utcnow().isoformat(),
+            'steps': []
+        }
+
+        # Step 1: Try subscriptions
+        logger.info("DEBUG: Step 1 - Fetching subscriptions...")
+        try:
+            subs = fetch_subscriptions(youtube)
+            results['steps'].append({
+                'name': 'fetch_subscriptions',
+                'status': 'SUCCESS',
+                'count': len(subs),
+                'sample': subs[:2] if subs else []
+            })
+            logger.info(f"DEBUG: Subscriptions: {len(subs)} fetched")
+        except Exception as e:
+            results['steps'].append({
+                'name': 'fetch_subscriptions',
+                'status': 'FAILED',
+                'error': str(e)
+            })
+            logger.error(f"DEBUG: Subscriptions failed: {str(e)}")
+
+        # Step 2: Try saved videos
+        logger.info("DEBUG: Step 2 - Fetching saved videos...")
+        try:
+            saved_data = fetch_saved_videos(youtube)
+            results['steps'].append({
+                'name': 'fetch_saved_videos',
+                'status': 'SUCCESS',
+                'videos_count': len(saved_data.get('saved_videos', [])),
+                'video_ids_count': len(saved_data.get('video_ids', [])),
+                'sample_videos': saved_data.get('saved_videos', [])[:2],
+                'sample_video_ids': saved_data.get('video_ids', [])[:2]
+            })
+            logger.info(f"DEBUG: Saved videos: {len(saved_data.get('saved_videos', []))} videos, {len(saved_data.get('video_ids', []))} IDs")
+        except Exception as e:
+            results['steps'].append({
+                'name': 'fetch_saved_videos',
+                'status': 'FAILED',
+                'error': str(e)
+            })
+            logger.error(f"DEBUG: Saved videos failed: {str(e)}")
+            saved_data = {'video_ids': [], 'saved_videos': []}
+
+        # Step 3: Try music identification
+        logger.info("DEBUG: Step 3 - Identifying music...")
+        try:
+            music, genres = determine_music_and_genres(youtube, saved_data.get('video_ids', []))
+            results['steps'].append({
+                'name': 'determine_music_and_genres',
+                'status': 'SUCCESS',
+                'music_count': len(music),
+                'genres_count': len(set(genres)),
+                'sample_music': music[:2]
+            })
+            logger.info(f"DEBUG: Music: {len(music)} tracks identified, {len(set(genres))} genres")
+        except Exception as e:
+            results['steps'].append({
+                'name': 'determine_music_and_genres',
+                'status': 'FAILED',
+                'error': str(e)
+            })
+            logger.error(f"DEBUG: Music identification failed: {str(e)}")
+
+        # Step 4: Try subscription genres
+        logger.info("DEBUG: Step 4 - Fetching subscription genres...")
+        try:
+            sub_genres = fetch_subscription_genres(youtube, subs)
+            results['steps'].append({
+                'name': 'fetch_subscription_genres',
+                'status': 'SUCCESS',
+                'count': len(sub_genres),
+                'sample': sub_genres[:5] if sub_genres else []
+            })
+            logger.info(f"DEBUG: Subscription genres: {len(sub_genres)} genres")
+        except Exception as e:
+            results['steps'].append({
+                'name': 'fetch_subscription_genres',
+                'status': 'FAILED',
+                'error': str(e)
+            })
+            logger.error(f"DEBUG: Subscription genres failed: {str(e)}")
+
+        # Step 5: Try playlists
+        logger.info("DEBUG: Step 5 - Fetching playlists...")
+        try:
+            playlists = fetch_playlists(youtube)
+            results['steps'].append({
+                'name': 'fetch_playlists',
+                'status': 'SUCCESS',
+                'count': len(playlists),
+                'sample': playlists[:2] if playlists else []
+            })
+            logger.info(f"DEBUG: Playlists: {len(playlists)} fetched")
+        except Exception as e:
+            results['steps'].append({
+                'name': 'fetch_playlists',
+                'status': 'FAILED',
+                'error': str(e)
+            })
+            logger.error(f"DEBUG: Playlists failed: {str(e)}")
+
+        results['summary'] = {
+            'total_steps': len(results['steps']),
+            'successful': len([s for s in results['steps'] if s['status'] == 'SUCCESS']),
+            'failed': len([s for s in results['steps'] if s['status'] == 'FAILED']),
+        }
+
+        return results
+
+    except Exception as e:
+        logger.exception("Error in debug-fetch")
+        return {'error': str(e)}
+
+
 @app.get("/compare/generate_link")
 async def generate_comparison_link(google_id: str = Depends(verify_token)):
     """Generate a shareable comparison link for the authenticated user."""
