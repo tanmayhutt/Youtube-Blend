@@ -68,12 +68,19 @@ def fetch_saved_videos(youtube):
         logger.info("📺 Method 1: Fetching liked videos (myRating='like')...")
         try:
             request = youtube.videos().list(part='snippet', myRating='like', maxResults=50, order='date')
+            logger.info(f"  Request created: {request}")
             liked_count = 0
+            page_num = 0
             while request:
+                page_num += 1
+                logger.info(f"  Executing page {page_num}...")
                 response = request.execute()
                 batch_size = len(response.get('items', []))
                 liked_count += batch_size
-                logger.info(f"  Method 1 Batch: {batch_size} liked videos (total: {liked_count})")
+                logger.info(f"  ✅ Page {page_num}: {batch_size} items (total: {liked_count})")
+                logger.info(f"  Response keys: {list(response.keys())}")
+                if batch_size == 0:
+                    logger.info(f"  ⚠️ Empty page! No more items.")
 
                 for sub in response.get('items', []):
                     title = sanitize_string(sub['snippet']['title'])
@@ -87,11 +94,15 @@ def fetch_saved_videos(youtube):
 
                 request = youtube.videos().list_next(request, response)
                 if request:
-                    logger.info(f"  ⏳ More liked videos available, fetching next page...")
+                    logger.info(f"  ⏳ Next page token found, continuing...")
+                else:
+                    logger.info(f"  ✅ No more pages")
 
-            logger.info(f"✅ Method 1 Result: {len(saved_videos)} liked videos, {len(video_ids)} IDs")
+            logger.info(f"✅ Method 1 Complete: {len(saved_videos)} videos total, {len(video_ids)} IDs")
         except Exception as e:
-            logger.warning(f"⚠️ Method 1 (myRating='like') failed: {str(e)}")
+            logger.error(f"❌ Method 1 FAILED: {str(e)}")
+            logger.exception("Full traceback for method 1:")
+
 
         # Method 2: Fetch from "Liked Videos" playlist if it exists
         logger.info("📁 Method 2: Fetching from playlists (including 'Liked Videos' playlist)...")
@@ -143,6 +154,8 @@ def fetch_saved_videos(youtube):
     except Exception as e:
         logger.error(f"❌ Error in fetch_saved_videos: {str(e)}")
         logger.exception("Full traceback:")
+
+    return {'saved_videos': saved_videos, 'video_ids': video_ids}
 
 
 def determine_music_and_genres(youtube, video_ids: List[str]) -> Tuple[List[Dict], List[str]]:
