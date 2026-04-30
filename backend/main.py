@@ -1156,6 +1156,159 @@ async def get_data_changes(google_id: str = Depends(verify_token)):
         raise HTTPException(status_code=500, detail=f"Failed to fetch changes: {str(e)}")
 
 
+@app.get("/data/api-health-check")
+async def api_health_check(google_id: str = Depends(verify_token)):
+    """DIAGNOSTIC: Test each YouTube API endpoint individually to identify what's broken."""
+    try:
+        creds = get_credentials_from_db(google_id)
+        if not creds:
+            return {'error': 'No credentials found', 'auth_status': 'FAILED'}
+
+        youtube = get_youtube_service(creds)
+        results = {
+            'timestamp': datetime.utcnow().isoformat(),
+            'google_id': google_id,
+            'tests': {}
+        }
+
+        # TEST 1: Check authentication by getting channel info
+        logger.info("🧪 TEST 1: Checking authentication with channels.list...")
+        try:
+            channels_resp = youtube.channels().list(part='id,snippet', mine=True).execute()
+            channel_count = len(channels_resp.get('items', []))
+            results['tests']['authentication'] = {
+                'status': 'SUCCESS',
+                'message': f'Auth working, found your channel: {channels_resp.get("items", [{}])[0].get("snippet", {}).get("title", "Unknown")}'
+            }
+        except Exception as e:
+            results['tests']['authentication'] = {
+                'status': 'FAILED',
+                'error': str(e),
+                'message': 'Cannot authenticate to YouTube API'
+            }
+            logger.error(f"Auth test failed: {str(e)}")
+
+        # TEST 2: Check subscriptions
+        logger.info("🧪 TEST 2: Testing subscriptions.list...")
+        try:
+            subs_resp = youtube.subscriptions().list(part='snippet', mine=True, maxResults=5).execute()
+            subs_count = len(subs_resp.get('items', []))
+            has_next = 'nextPageToken' in subs_resp
+            results['tests']['subscriptions'] = {
+                'status': 'SUCCESS',
+                'count': subs_count,
+                'has_more_pages': has_next,
+                'sample': [s['snippet']['title'] for s in subs_resp.get('items', [])]
+            }
+        except Exception as e:
+            results['tests']['subscriptions'] = {
+                'status': 'FAILED',
+                'error': str(e)
+            }
+            logger.error(f"Subscriptions test failed: {str(e)}")
+
+        # TEST 3: Check liked videos via myRating
+        logger.info("🧪 TEST 3: Testing videos.list with myRating='like'...")
+        try:
+            liked_resp = youtube.videos().list(part='snippet', myRating='like', maxResults=5, order='date').execute()
+            liked_count = len(liked_resp.get('items', []))
+            has_next = 'nextPageToken' in liked_resp
+            results['tests']['liked_videos_myRating'] = {
+                'status': 'SUCCESS',
+                'count': liked_count,
+                'has_more_pages': has_next,
+                'sample': [v['snippet']['title'] for v in liked_resp.get('items', [])]
+            }
+        except Exception as e:
+            results['tests']['liked_videos_myRating'] = {
+                'status': 'FAILED',
+                'error': str(e),
+                'message': f'myRating filter not working: {str(e)}'
+            }
+            logger.error(f"Liked videos (myRating) test failed: {str(e)}")
+
+        # TEST 4: Check playlists
+        logger.info("🧪 TEST 4: Testing playlists.list...")
+        try:
+            playlists_resp = youtube.playlists().list(part='id,snippet', mine=True, maxResults=5).execute()
+            playlists_count = len(playlists_resp.get('items', []))
+            has_next = 'nextPageToken' in playlists_resp
+            results['tests']['playlists'] = {
+                'status': 'SUCCESS',
+                'count': playlists_count,
+                'has_more_pages': has_next,
+                'sample': [p['snippet']['title'] for p in playlists_resp.get('items', [])]
+            }
+        except Exception as e:
+            results['tests']['playlists'] = {
+                'status': 'FAILED',
+                'error': str(e)
+            }
+            logger.error(f"Playlists test failed: {str(e)}")
+
+        # TEST 5: Check playlist items (from first playlist if exists)
+        logger.info("🧪 TEST 5: Testing playlistItems.list...")
+        try:
+            playlists_resp = youtube.playlists().list(part='id,snippet', mine=True, maxResults=1).execute()
+            if playlists_resp.get('items'):
+                playlist_id = playlists_resp['items'][0]['id']
+                items_resp = youtube.playlistItems().list(part='snippet', playlistId=playlist_id, maxResults=5).execute()
+                items_count = len(items_resp.get('items', []))
+                has_next = 'nextPageToken' in items_resp
+                results['tests']['playlist_items'] = {
+                    'status': 'SUCCESS',
+                    'playlist_id': playlist_id,
+                    'count': items_count,
+                    'has_more_pages': has_next,
+                    'sample': [item['snippet'].get('title', 'Unknown') for item in items_resp.get('items', [])]
+                }
+            else:
+                results['tests']['playlist_items'] = {
+                    'status': 'SKIPPED',
+                    'message': 'No playlists found to test'
+                }
+        except Exception as e:
+            results['tests']['playlist_items'] = {
+                'status': 'FAILED',
+                'error': str(e)
+            }
+            logger.error(f"Playlist items test failed: {str(e)}")
+
+        # TEST 6: Check video categories
+        logger.info("🧪 TEST 6: Testing videoCategories.list...")
+        try:
+            cats_resp = youtube.videoCategories().list(part='snippet', regionCode='US', maxResults=5).execute()
+            cats_count = len(cats_resp.get('items', []))
+            results['tests']['video_categories'] = {
+                'status': 'SUCCESS',
+                'count': cats_count,
+                'sample': [c['snippet']['title'] for c in cats_resp.get('items', [])]
+            }
+        except Exception as e:
+            results['tests']['video_categories'] = {
+                'status': 'FAILED',
+                'error': str(e)
+            }
+            logger.error(f"Video categories test failed: {str(e)}")
+
+        # SUMMARY
+        failed_tests = [name for name, result in results['tests'].items() if result.get('status') == 'FAILED']
+        results['summary'] = {
+            'total_tests': len(results['tests']),
+            'passed': len(results['tests']) - len(failed_tests),
+            'failed': len(failed_tests),
+            'failed_tests': failed_tests,
+            'overall_status': 'HEALTHY' if not failed_tests else 'DEGRADED' if len(failed_tests) < 3 else 'BROKEN'
+        }
+
+        logger.info(f"Health check complete: {results['summary']}")
+        return results
+
+    except Exception as e:
+        logger.exception("Error in API health check")
+        return {'error': str(e), 'status': 'CRITICAL'}
+
+
 @app.get("/compare/generate_link")
 async def generate_comparison_link(google_id: str = Depends(verify_token)):
     """Generate a shareable comparison link for the authenticated user."""
