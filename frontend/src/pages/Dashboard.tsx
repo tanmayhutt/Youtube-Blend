@@ -51,6 +51,37 @@ const Dashboard = () => {
     }
   };
 
+  // Force full sync - clears cache and re-fetches everything
+  const forceFullSync = async () => {
+    setSyncing(true);
+    try {
+      console.log("🔥 Starting force full sync...");
+      const response = await authClient.post("/data/force-full-sync");
+      console.log("✅ Force full sync completed");
+      setUserData({
+        subscriptions: response.data.subscriptions,
+        subscription_genres: response.data.subscription_genres,
+        saved_videos: response.data.saved_videos,
+        music_listened: response.data.music_listened,
+        video_genres: response.data.video_genres,
+        playlists: response.data.playlists,
+      });
+      toast({
+        title: "Force Full Sync Complete",
+        description: response.data.message,
+      });
+    } catch (error: any) {
+      console.error("❌ Force full sync failed:", error);
+      toast({
+        title: "Force Sync Failed",
+        description: error.response?.data?.detail || "Failed to force sync",
+        variant: "destructive",
+      });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   // Sync user data from YouTube (full fetch on first sync, incremental on subsequent)
   const syncUserData = async () => {
     setSyncing(true);
@@ -253,6 +284,26 @@ const Dashboard = () => {
               >
                 <RefreshCw className="w-5 h-5 mr-2" />
                 Full Sync (Clear Cache)
+              </Button>
+
+              <Button
+                onClick={forceFullSync}
+                disabled={syncing}
+                variant="destructive"
+                size="lg"
+                className="text-base px-8 py-6"
+              >
+                {syncing ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Syncing...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-5 h-5 mr-2" />
+                    Force Full Sync (Re-fetch All)
+                  </>
+                )}
               </Button>
 
               <div>

@@ -759,6 +759,102 @@ async def get_my_data(google_id: str = Depends(verify_token)):
         raise HTTPException(status_code=500, detail=f"Failed to get user data: {str(e)}")
 
 
+@app.post("/data/force-full-sync")
+async def force_full_sync(google_id: str = Depends(verify_token)):
+    """Force FULL sync by clearing cached data first, then syncing everything fresh."""
+    try:
+        logger.info(f"🔥 FORCING FULL SYNC by clearing cache for {google_id}")
+
+        # Clear ALL cached data
+        users.update_one(
+            {'google_id': google_id},
+            {
+                '$unset': {
+                    'cached_data': "",
+                    'last_full_sync': "",
+                    'sync_stats': ""
+                }
+            }
+        )
+        logger.info("✅ Cache cleared")
+
+        # Now immediately trigger sync
+        logger.info("⏳ Starting FULL SYNC...")
+        creds = get_credentials_from_db(google_id)
+        if not creds:
+            raise HTTPException(status_code=401, detail="Invalid or expired credentials")
+
+        youtube = get_youtube_service(creds)
+        loop = asyncio.get_event_loop()
+
+        # Fetch ALL YouTube data in parallel
+        logger.info("⏳ Fetching subscriptions + saved videos...")
+        subscriptions, saved_data = await asyncio.gather(
+            loop.run_in_executor(None, fetch_subscriptions, youtube),
+            loop.run_in_executor(None, fetch_saved_videos, youtube),
+            return_exceptions=True
+        )
+
+        # Handle exceptions
+        if isinstance(subscriptions, Exception):
+            logger.error(f"❌ Error fetching subscriptions: {subscriptions}")
+            subscriptions = []
+        if isinstance(saved_data, Exception):
+            logger.error(f"❌ Error fetching saved videos: {saved_data}")
+            saved_data = {'video_ids': [], 'saved_videos': []}
+
+        logger.info(f"📊 Fetched:")
+        logger.info(f"   - {len(subscriptions)} subscriptions")
+        logger.info(f"   - {len(saved_data.get('saved_videos', []))} saved videos")
+        logger.info(f"   - {len(saved_data.get('video_ids', []))} video IDs")
+
+        # Determine music from saved videos
+        logger.info("⏳ Identifying music...")
+        music_listened, video_genres = determine_music_and_genres(youtube, saved_data.get('video_ids', []))
+        logger.info(f"🎵 Found {len(music_listened)} music tracks")
+
+        # Fetch genres
+        subscription_genres = await loop.run_in_executor(None, fetch_subscription_genres, youtube, subscriptions)
+        playlists = await loop.run_in_executor(None, fetch_playlists, youtube)
+
+        # Build user data
+        user_data = {
+            'subscriptions': subscriptions,
+            'subscription_genres': subscription_genres,
+            'saved_videos': saved_data.get('saved_videos', []),
+            'music_listened': music_listened,
+            'video_genres': video_genres,
+            'playlists': playlists
+        }
+
+        # Store in DB
+        cache_user_data(google_id, user_data)
+        users.update_one({'google_id': google_id}, {'$set': {'last_full_sync': datetime.utcnow()}})
+
+        logger.info(f"✅ ✅ ✅ FULL SYNC COMPLETE:")
+        logger.info(f"   📊 {len(subscriptions)} channels")
+        logger.info(f"   🎬 {len(saved_data.get('saved_videos', []))} saved videos")
+        logger.info(f"   🎵 {len(music_listened)} music tracks")
+        logger.info(f"   📁 {len(playlists)} playlists")
+
+        return {
+            'success': True,
+            'sync_type': 'FULL',
+            'subscriptions': subscriptions,
+            'subscription_genres': subscription_genres,
+            'saved_videos': saved_data.get('saved_videos', []),
+            'music_listened': music_listened,
+            'video_genres': video_genres,
+            'playlists': playlists,
+            'message': f'✅ FULL SYNC COMPLETE: Found {len(subscriptions)} channels, {len(music_listened)} songs, {len(playlists)} playlists.'
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"Error in force full sync: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Force sync failed: {str(e)}")
+
+
 @app.post("/data/sync")
 async def sync_user_data(google_id: str = Depends(verify_token)):
     """
