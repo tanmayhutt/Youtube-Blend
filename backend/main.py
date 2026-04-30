@@ -797,10 +797,13 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
         logger.info(f"✅ Fetched {len(subscriptions)} subscriptions")
         logger.info(f"✅ Fetched {len(saved_data.get('saved_videos', []))} saved videos")
         logger.info(f"✅ Fetched {len(saved_data.get('video_ids', []))} video IDs")
-        # Unpack music data
-        music_listened, video_genres = music_and_genres
 
-        logger.info(f"Fetched {len(saved_data.get('saved_videos', []))} total saved videos, {len(music_listened)} are music tracks")
+        # Determine music and genres from saved videos
+        music_listened, video_genres = determine_music_and_genres(youtube, saved_data.get('video_ids', []))
+        logger.info(f"✅ Identified {len(music_listened)} music tracks from saved videos")
+
+        # Fetch subscription genres in parallel
+        subscription_genres = await loop.run_in_executor(None, fetch_subscription_genres, youtube, subscriptions)
 
         # Fetch all playlists
         playlists = await loop.run_in_executor(None, fetch_playlists, youtube)
