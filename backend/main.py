@@ -910,6 +910,50 @@ async def force_refresh(google_id: str = Depends(verify_token)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/data/test-liked-videos")
+async def test_liked_videos(google_id: str = Depends(verify_token)):
+    """Test endpoint: Try to fetch liked videos to diagnose permission issues."""
+    try:
+        creds = get_credentials_from_db(google_id)
+        if not creds:
+            return {'error': 'No credentials found', 'scopes': None}
+
+        youtube = get_youtube_service(creds)
+
+        # Try to fetch liked videos
+        logger.info("🧪 TEST: Attempting to fetch liked videos...")
+        request = youtube.videos().list(part='snippet', myRating='like', maxResults=5)
+        response = request.execute()
+
+        items_count = len(response.get('items', []))
+        has_next_page = 'nextPageToken' in response
+
+        return {
+            'test': 'liked_videos',
+            'status': 'success',
+            'items_fetched': items_count,
+            'has_next_page': has_next_page,
+            'message': f'Successfully fetched {items_count} liked videos. Pagination available: {has_next_page}',
+            'sample_items': [
+                {
+                    'title': item['snippet']['title'],
+                    'video_id': item['id'],
+                    'category': item['snippet'].get('categoryId')
+                }
+                for item in response.get('items', [])[:3]
+            ]
+        }
+    except Exception as e:
+        error_msg = str(e)
+        logger.error(f"❌ TEST FAILED: {error_msg}")
+        return {
+            'test': 'liked_videos',
+            'status': 'failed',
+            'error': error_msg,
+            'message': 'Could not fetch liked videos. This usually means permissions are incorrect. Try: 1) Click "Full Sync (Clear Cache)" 2) Sign out completely 3) Sign back in'
+        }
+
+
 @app.get("/data/changes")
 async def get_data_changes(google_id: str = Depends(verify_token)):
     """Get what's NEW or CHANGED since last sync (items with metadata updates)."""
