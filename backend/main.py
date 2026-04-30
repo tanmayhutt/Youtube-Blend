@@ -1499,6 +1499,170 @@ async def test_simple_fetch(google_id: str = Depends(verify_token)):
         raise HTTPException(status_code=500, detail=f"Failed: {str(e)}")
 
 
+@app.get("/data/debug-videos-only")
+async def debug_videos_only(google_id: str = Depends(verify_token)):
+    """SUPER DETAILED: Debug ONLY the fetch_saved_videos function step by step."""
+    try:
+        creds = get_credentials_from_db(google_id)
+        if not creds:
+            return {'error': 'No credentials'}
+
+        youtube = get_youtube_service(creds)
+
+        logger.info("="*80)
+        logger.info("DETAILED DEBUG: fetch_saved_videos")
+        logger.info("="*80)
+
+        saved_videos = []
+        video_ids = []
+
+        # METHOD 1: myRating='like'
+        logger.info("\n📺 METHOD 1: myRating='like'")
+        logger.info("-" * 80)
+        method1_count = 0
+        method1_error = None
+        try:
+            request = youtube.videos().list(part='snippet', myRating='like', maxResults=50)
+            logger.info(f"✅ Created request object: {type(request)}")
+
+            page_num = 0
+            while request:
+                page_num += 1
+                logger.info(f"\n  PAGE {page_num}:")
+                try:
+                    response = request.execute()
+                    logger.info(f"    ✅ Request executed successfully")
+                    logger.info(f"    Response keys: {list(response.keys())}")
+
+                    items = response.get('items', [])
+                    logger.info(f"    Items returned: {len(items)}")
+
+                    for idx, item in enumerate(items):
+                        logger.info(f"      Item {idx+1}: {item.get('snippet', {}).get('title', 'Unknown')}")
+                        saved_videos.append({
+                            'title': item['snippet']['title'],
+                            'video_id': item['id'],
+                            'source': 'myRating'
+                        })
+                        video_ids.append(item['id'])
+
+                    method1_count += len(items)
+                    logger.info(f"    Running total: {method1_count}")
+
+                    # Check for next page
+                    request = youtube.videos().list_next(request, response)
+                    if request:
+                        logger.info(f"    → Next page exists, continuing...")
+                    else:
+                        logger.info(f"    → No more pages")
+
+                except Exception as page_err:
+                    logger.error(f"    ❌ Error on page {page_num}: {str(page_err)}")
+                    logger.exception("    Full traceback:")
+                    break
+
+            logger.info(f"\n✅ METHOD 1 COMPLETE: {method1_count} videos")
+
+        except Exception as e:
+            method1_error = str(e)
+            logger.error(f"❌ METHOD 1 FAILED: {method1_error}")
+            logger.exception("Full traceback:")
+
+        # METHOD 2: Playlists
+        logger.info("\n📁 METHOD 2: Playlists")
+        logger.info("-" * 80)
+        method2_count = 0
+        method2_error = None
+        try:
+            playlist_request = youtube.playlists().list(part='id,snippet', mine=True, maxResults=50)
+            logger.info(f"✅ Created playlists request")
+
+            playlists_processed = 0
+            while playlist_request:
+                try:
+                    playlist_response = playlist_request.execute()
+                    playlists = playlist_response.get('items', [])
+                    logger.info(f"\n  Batch: {len(playlists)} playlists")
+
+                    for playlist in playlists:
+                        playlist_id = playlist['id']
+                        playlist_title = playlist['snippet']['title']
+                        logger.info(f"    📋 Playlist: {playlist_title} ({playlist_id})")
+
+                        # Fetch items from this playlist
+                        item_request = youtube.playlistItems().list(part='snippet', playlistId=playlist_id, maxResults=50)
+                        items_count = 0
+
+                        while item_request:
+                            try:
+                                item_response = item_request.execute()
+                                items = item_response.get('items', [])
+                                logger.info(f"      → {len(items)} items in this page")
+
+                                for item in items:
+                                    title = item['snippet'].get('title', 'Unknown')
+                                    video_id = item['snippet']['resourceId'].get('videoId')
+                                    if video_id:
+                                        saved_videos.append({
+                                            'title': title,
+                                            'video_id': video_id,
+                                            'source': f'playlist: {playlist_title}'
+                                        })
+                                        video_ids.append(video_id)
+                                        items_count += 1
+                                        method2_count += 1
+
+                                item_request = youtube.playlistItems().list_next(item_request, item_response)
+                            except Exception as item_err:
+                                logger.error(f"      ❌ Error fetching playlist items: {str(item_err)}")
+                                break
+
+                        logger.info(f"      ✅ Added {items_count} items from this playlist (total: {method2_count})")
+
+                    playlist_request = youtube.playlists().list_next(playlist_request, playlist_response)
+
+                except Exception as batch_err:
+                    logger.error(f"  ❌ Error in playlist batch: {str(batch_err)}")
+                    logger.exception("Full traceback:")
+                    break
+
+            logger.info(f"\n✅ METHOD 2 COMPLETE: {method2_count} videos")
+
+        except Exception as e:
+            method2_error = str(e)
+            logger.error(f"❌ METHOD 2 FAILED: {method2_error}")
+            logger.exception("Full traceback:")
+
+        logger.info("\n" + "="*80)
+        logger.info(f"FINAL RESULT:")
+        logger.info(f"  Method 1 (myRating): {method1_count} videos" + (f" - ERROR: {method1_error}" if method1_error else ""))
+        logger.info(f"  Method 2 (playlists): {method2_count} videos" + (f" - ERROR: {method2_error}" if method2_error else ""))
+        logger.info(f"  TOTAL: {len(saved_videos)} videos, {len(video_ids)} IDs")
+        logger.info("="*80)
+
+        return {
+            'method1': {
+                'count': method1_count,
+                'error': method1_error,
+                'status': 'SUCCESS' if method1_count > 0 else ('FAILED' if method1_error else 'NO DATA')
+            },
+            'method2': {
+                'count': method2_count,
+                'error': method2_error,
+                'status': 'SUCCESS' if method2_count > 0 else ('FAILED' if method2_error else 'NO DATA')
+            },
+            'total': {
+                'videos': len(saved_videos),
+                'video_ids': len(video_ids),
+                'sample': saved_videos[:3]
+            }
+        }
+
+    except Exception as e:
+        logger.exception("Error in debug-videos-only")
+        return {'error': str(e)}
+
+
 @app.get("/compare/generate_link")
 async def generate_comparison_link(google_id: str = Depends(verify_token)):
     """Generate a shareable comparison link for the authenticated user."""
