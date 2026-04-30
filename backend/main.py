@@ -858,9 +858,9 @@ async def force_full_sync(google_id: str = Depends(verify_token)):
 @app.post("/data/sync")
 async def sync_user_data(google_id: str = Depends(verify_token)):
     """
-    Full initial sync: Fetches ALL YouTube data and stores in DB.
-    Subsequent syncs: Detects changes and updates only changed items.
-    Always faster after first sync (data from DB instead of YouTube API).
+    Always does a FULL fresh sync: Fetches ALL YouTube data and stores in DB.
+    Every call fetches fresh from YouTube, not cached data.
+    This ensures you always get the latest data.
     """
     try:
         creds = get_credentials_from_db(google_id)
@@ -868,12 +868,8 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
             raise HTTPException(status_code=401, detail="Invalid or expired credentials")
 
         youtube = get_youtube_service(creds)
-        doc = users.find_one({'google_id': google_id})
-        is_first_sync = doc is None or doc.get('cached_data') is None
 
-        logger.info(f"{'🚀 FULL SYNC (First time)' if is_first_sync else '♻️ INCREMENTAL SYNC'} for {google_id}")
-        logger.info(f"  User doc exists: {doc is not None}")
-        logger.info(f"  Cached data exists: {doc.get('cached_data') is not None if doc else 'N/A'}")
+        logger.info(f"🚀 FULL FRESH SYNC for {google_id}")
 
         # Fetch ALL YouTube data in parallel
         loop = asyncio.get_event_loop()
@@ -923,8 +919,8 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
             'playlists': playlists
         }
 
-        logger.info(f"💾 Storing in database and syncing...")
-        # Store in DB (with incremental detection for subsequent syncs)
+        logger.info(f"💾 Storing FRESH data to database...")
+        # Store in DB
         cache_user_data(google_id, user_data)
 
         # Update sync timestamp
@@ -938,14 +934,14 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
 
         return {
             'success': True,
-            'sync_type': 'FULL' if is_first_sync else 'INCREMENTAL',
+            'sync_type': 'FULL',
             'subscriptions': subscriptions,
             'subscription_genres': subscription_genres,
             'saved_videos': saved_data.get('saved_videos', []),
             'music_listened': music_listened,
             'video_genres': video_genres,
             'playlists': playlists,
-            'message': f'Found {len(subscriptions)} channels, {len(music_listened)} songs, {len(playlists)} playlists. Data saved to database.'
+            'message': f'✅ FULL SYNC: Found {len(subscriptions)} channels, {len(music_listened)} songs, {len(playlists)} playlists. Fresh data saved to database.'
         }
     except HTTPException:
         raise
