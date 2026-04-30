@@ -6,8 +6,28 @@ import json
 from google.oauth2.credentials import Credentials
 from typing import List, Dict, Tuple
 import logging
+import time
+import ssl
 
 logger = logging.getLogger(__name__)
+
+def execute_with_retry(request, max_retries=3, backoff_factor=1):
+    """Execute a request with retry logic for SSL and transient errors."""
+    for attempt in range(max_retries):
+        try:
+            return request.execute()
+        except (ssl.SSLError, ConnectionError, TimeoutError) as e:
+            if attempt < max_retries - 1:
+                wait_time = backoff_factor * (2 ** attempt)
+                logger.warning(f"  Transient error (attempt {attempt + 1}/{max_retries}): {str(e)}")
+                logger.warning(f"  Retrying in {wait_time}s...")
+                time.sleep(wait_time)
+            else:
+                logger.error(f"  Failed after {max_retries} attempts: {str(e)}")
+                raise
+        except Exception as e:
+            # Don't retry on other errors
+            raise
 
 def sanitize_string(s: str) -> str:
     if not isinstance(s, str):
@@ -27,7 +47,7 @@ def fetch_subscriptions(youtube):
         batch_num = 0
         while request:
             batch_num += 1
-            response = request.execute()
+            response = execute_with_retry(request)
             batch_size = len(response.get('items', []))
             subscriptions.extend([{
                 'title': sanitize_string(sub['snippet']['title']),
@@ -42,19 +62,29 @@ def fetch_subscriptions(youtube):
         logger.exception("Full traceback for subscriptions:")
     return subscriptions
 
-def fetch_subscription_genres(youtube, channel_ids: List[str]):
-    """Fetches genres/topics for subscriptions."""
+def fetch_subscription_genres(youtube, subscriptions_or_channel_ids):
+    """Fetches genres/topics for subscriptions. Accepts either list of subscription dicts or channel ID strings."""
     genres = []
     try:
+        # Extract channel IDs if we received subscription objects
+        if subscriptions_or_channel_ids and isinstance(subscriptions_or_channel_ids[0], dict):
+            channel_ids = [sub.get('channel_id') for sub in subscriptions_or_channel_ids if sub.get('channel_id')]
+        else:
+            channel_ids = subscriptions_or_channel_ids
+
+        logger.info(f"  Fetching genres for {len(channel_ids)} channels (batch size: 50)")
+
         for i in range(0, len(channel_ids), 50):
             batch_ids = channel_ids[i:i+50]
             channel_request = youtube.channels().list(part='topicDetails', id=','.join(batch_ids))
-            channel_response = channel_request.execute()
+            channel_response = execute_with_retry(channel_request)
             for channel in channel_response.get('items', []):
                 topics = channel.get('topicDetails', {}).get('topicCategories', [])
                 genres.extend([sanitize_string(topic.split('/')[-1]) for topic in topics])
+            logger.info(f"  Batch {i//50 + 1}: Added {len([sanitize_string(topic.split('/')[-1]) for topic in genres])} genres")
     except Exception as e:
         logger.error(f"Error fetching subscription genres: {str(e)}")
+        logger.exception("Full traceback for subscription genres:")
     return list(set(genres))
 
 def fetch_saved_videos(youtube):
@@ -67,14 +97,15 @@ def fetch_saved_videos(youtube):
         # Try Method 1: Liked videos via myRating
         logger.info("📺 Method 1: Fetching liked videos (myRating='like')...")
         try:
-            request = youtube.videos().list(part='snippet', myRating='like', maxResults=50, order='date')
+            # Note: 'order' parameter is NOT valid for myRating filter, only for search
+            request = youtube.videos().list(part='snippet', myRating='like', maxResults=50)
             logger.info(f"  Request created: {request}")
             liked_count = 0
             page_num = 0
             while request:
                 page_num += 1
                 logger.info(f"  Executing page {page_num}...")
-                response = request.execute()
+                response = execute_with_retry(request)
                 batch_size = len(response.get('items', []))
                 liked_count += batch_size
                 logger.info(f"  ✅ Page {page_num}: {batch_size} items (total: {liked_count})")
@@ -110,7 +141,7 @@ def fetch_saved_videos(youtube):
             playlist_request = youtube.playlists().list(part='id,snippet', mine=True, maxResults=50)
             playlists_found = 0
             while playlist_request:
-                playlist_response = playlist_request.execute()
+                playlist_response = execute_with_retry(playlist_request)
                 playlists_found += len(playlist_response.get('items', []))
                 logger.info(f"  Found {len(playlist_response.get('items', []))} playlists")
 
@@ -123,7 +154,7 @@ def fetch_saved_videos(youtube):
                     items_from_this_playlist = 0
 
                     while item_request:
-                        item_response = item_request.execute()
+                        item_response = execute_with_retry(item_request)
                         batch_size = len(item_response.get('items', []))
                         items_from_this_playlist += batch_size
 
@@ -176,7 +207,7 @@ def determine_music_and_genres(youtube, video_ids: List[str]) -> Tuple[List[Dict
 
             # Include statistics to get viewCount for sorting
             request = youtube.videos().list(part='snippet,statistics', id=','.join(batch_ids))
-            response = request.execute()
+            response = execute_with_retry(request)
 
             for video in response.get('items', []):
                 title = sanitize_string(video['snippet']['title'])
@@ -196,7 +227,7 @@ def determine_music_and_genres(youtube, video_ids: List[str]) -> Tuple[List[Dict
 
                 if category_id:
                     category_request = youtube.videoCategories().list(part='snippet', id=category_id)
-                    category_response = category_request.execute()
+                    category_response = execute_with_retry(category_request)
                     genre = category_response['items'][0]['snippet']['title'] if category_response.get('items') else 'Unknown'
                     video_genres.append(sanitize_string(genre))
 
@@ -212,7 +243,7 @@ def fetch_playlists(youtube):
     try:
         request = youtube.playlists().list(part='snippet,id', mine=True, maxResults=50)
         while request:
-            response = request.execute()
+            response = execute_with_retry(request)
             for playlist in response.get('items', []):
                 playlists.append({
                     'title': sanitize_string(playlist['snippet']['title']),
