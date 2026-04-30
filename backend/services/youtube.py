@@ -56,12 +56,18 @@ def fetch_saved_videos(youtube):
     saved_videos = []
     video_ids = []
     try:
+        logger.info("🎬 Starting fetch_saved_videos...")
+
         # Liked videos
+        logger.info("📺 Fetching liked videos (myRating='like')...")
         request = youtube.videos().list(part='snippet', myRating='like', maxResults=50, order='date')
+        liked_count = 0
         while request:
             response = request.execute()
             batch_size = len(response.get('items', []))
-            logger.info(f"Fetched liked videos batch: {batch_size} items")
+            liked_count += batch_size
+            logger.info(f"  Batch: {batch_size} liked videos (total so far: {liked_count})")
+
             for sub in response.get('items', []):
                 title = sanitize_string(sub['snippet']['title'])
                 if title not in [v['title'] for v in saved_videos]:
@@ -71,20 +77,33 @@ def fetch_saved_videos(youtube):
                         'thumbnail_url': sub['snippet']['thumbnails'].get('medium', {}).get('url', '')
                     })
                     video_ids.append(sub['id'])
+
             request = youtube.videos().list_next(request, response)
-        logger.info(f"✅ Total liked videos: {len(saved_videos)}")
+            if request:
+                logger.info(f"  ⏳ More liked videos available, fetching next page...")
+
+        logger.info(f"✅ Liked videos: {len(saved_videos)} videos, {len(video_ids)} IDs")
+
         # Playlist items
+        logger.info("📁 Fetching playlists...")
         playlist_request = youtube.playlists().list(part='id', mine=True, maxResults=50)
+        playlist_count = 0
         while playlist_request:
             playlist_response = playlist_request.execute()
-            logger.info(f"Fetched playlists batch: {len(playlist_response.get('items', []))} playlists")
+            playlists_batch = len(playlist_response.get('items', []))
+            playlist_count += playlists_batch
+            logger.info(f"  Playlists batch: {playlists_batch} playlists (total: {playlist_count})")
+
             for playlist in playlist_response.get('items', []):
                 playlist_id = playlist['id']
                 item_request = youtube.playlistItems().list(part='snippet', playlistId=playlist_id, maxResults=50)
+                items_in_playlist = 0
+
                 while item_request:
                     item_response = item_request.execute()
                     batch_size = len(item_response.get('items', []))
-                    logger.info(f"  Playlist {playlist_id}: fetched {batch_size} items")
+                    items_in_playlist += batch_size
+
                     for item in item_response.get('items', []):
                         title = sanitize_string(item['snippet'].get('title', 'Unknown'))
                         video_id = item['snippet']['resourceId'].get('videoId')
@@ -93,6 +112,21 @@ def fetch_saved_videos(youtube):
                                 'title': title,
                                 'video_id': video_id,
                                 'thumbnail_url': item['snippet']['thumbnails'].get('medium', {}).get('url', '')
+                            })
+                            video_ids.append(video_id)
+
+                    item_request = youtube.playlistItems().list_next(item_request, item_response)
+
+                logger.info(f"    Playlist {playlist_id}: {items_in_playlist} items added")
+
+            playlist_request = youtube.playlists().list_next(playlist_request, playlist_response)
+
+        logger.info(f"✅ Final: {len(saved_videos)} total videos, {len(video_ids)} video IDs")
+
+    except Exception as e:
+        logger.error(f"❌ Error fetching saved videos: {str(e)}")
+
+    return {'saved_videos': saved_videos, 'video_ids': video_ids}
                             })
                             video_ids.append(video_id)
                     item_request = youtube.playlistItems().list_next(item_request, item_response)
@@ -106,16 +140,27 @@ def determine_music_and_genres(youtube, video_ids: List[str]) -> Tuple[List[Dict
     """Identifies music videos and genres from video IDs."""
     music_listened = []
     video_genres = []
+
+    logger.info(f"🎵 Starting music identification for {len(video_ids)} video IDs")
+
+    if not video_ids:
+        logger.warning("❌ No video IDs provided for music identification!")
+        return [], []
+
     try:
         for i in range(0, len(video_ids), 50):
             batch_ids = video_ids[i:i+50]
+            logger.info(f"Processing batch {i//50 + 1}: {len(batch_ids)} videos")
+
             # Include statistics to get viewCount for sorting
             request = youtube.videos().list(part='snippet,statistics', id=','.join(batch_ids))
             response = request.execute()
+
             for video in response.get('items', []):
                 title = sanitize_string(video['snippet']['title'])
                 category_id = video['snippet'].get('categoryId')
                 is_music = category_id == '10' or any(keyword in title.lower() for keyword in ['song', 'music', 'album', 'track', 'playlist'])
+
                 if is_music:
                     # Get view count from statistics
                     view_count = int(video.get('statistics', {}).get('viewCount', 0))
@@ -125,13 +170,18 @@ def determine_music_and_genres(youtube, video_ids: List[str]) -> Tuple[List[Dict
                         'thumbnail_url': video['snippet']['thumbnails'].get('medium', {}).get('url', ''),
                         'view_count': view_count
                     })
+                    logger.info(f"  ✅ Found music: {title} (category: {category_id})")
+
                 if category_id:
                     category_request = youtube.videoCategories().list(part='snippet', id=category_id)
                     category_response = category_request.execute()
                     genre = category_response['items'][0]['snippet']['title'] if category_response.get('items') else 'Unknown'
                     video_genres.append(sanitize_string(genre))
+
+        logger.info(f"✅ Music identification complete: Found {len(music_listened)} music tracks from {len(video_ids)} videos")
     except Exception as e:
-        logger.error(f"Error determining music/genres: {str(e)}")
+        logger.error(f"❌ Error determining music/genres: {str(e)}")
+
     return music_listened, list(set(video_genres))
 
 def fetch_playlists(youtube):

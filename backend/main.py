@@ -775,11 +775,14 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
         doc = users.find_one({'google_id': google_id})
         is_first_sync = doc is None or doc.get('cached_data') is None
 
-        logger.info(f"Starting {'FULL' if is_first_sync else 'INCREMENTAL'} sync for {google_id}")
+        logger.info(f"{'🚀 FULL SYNC (First time)' if is_first_sync else '♻️ INCREMENTAL SYNC'} for {google_id}")
+        logger.info(f"  User doc exists: {doc is not None}")
+        logger.info(f"  Cached data exists: {doc.get('cached_data') is not None if doc else 'N/A'}")
 
         # Fetch ALL YouTube data in parallel
         loop = asyncio.get_event_loop()
 
+        logger.info("⏳ Starting parallel fetch of subscriptions + saved videos...")
         subscriptions, saved_data = await asyncio.gather(
             loop.run_in_executor(None, fetch_subscriptions, youtube),
             loop.run_in_executor(None, fetch_saved_videos, youtube),
@@ -788,31 +791,31 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
 
         # Handle exceptions from parallel fetch
         if isinstance(subscriptions, Exception):
-            logger.error(f"Error fetching subscriptions: {subscriptions}")
+            logger.error(f"❌ Error fetching subscriptions: {subscriptions}")
             subscriptions = []
         if isinstance(saved_data, Exception):
-            logger.error(f"Error fetching saved videos: {saved_data}")
+            logger.error(f"❌ Error fetching saved videos: {saved_data}")
             saved_data = {'video_ids': [], 'saved_videos': []}
 
-        logger.info(f"✅ Fetched {len(subscriptions)} subscriptions")
-        logger.info(f"✅ Fetched {len(saved_data.get('saved_videos', []))} saved videos")
-        logger.info(f"✅ Fetched {len(saved_data.get('video_ids', []))} video IDs")
+        logger.info(f"✅ Parallel fetch complete:")
+        logger.info(f"   - {len(subscriptions)} subscriptions")
+        logger.info(f"   - {len(saved_data.get('saved_videos', []))} saved videos")
+        logger.info(f"   - {len(saved_data.get('video_ids', []))} video IDs")
 
         # Determine music and genres from saved videos
+        logger.info("⏳ Now identifying music from video IDs...")
         music_listened, video_genres = determine_music_and_genres(youtube, saved_data.get('video_ids', []))
-        logger.info(f"✅ Identified {len(music_listened)} music tracks from saved videos")
+        logger.info(f"🎵 Music identification result: {len(music_listened)} music tracks, {len(video_genres)} genres")
 
         # Fetch subscription genres in parallel
+        logger.info("⏳ Fetching subscription genres...")
         subscription_genres = await loop.run_in_executor(None, fetch_subscription_genres, youtube, subscriptions)
+        logger.info(f"✅ Got {len(subscription_genres)} subscription genres")
 
         # Fetch all playlists
+        logger.info("⏳ Fetching playlists...")
         playlists = await loop.run_in_executor(None, fetch_playlists, youtube)
-
-        logger.info(f"Fetched {len(playlists)} playlists")
-
-        # Build complete user data
-        user_data = {
-            'subscriptions': subscriptions,
+        logger.info(f"✅ Got {len(playlists)} playlists")
             'subscription_genres': subscription_genres,
             'saved_videos': saved_data.get('saved_videos', []),
             'music_listened': music_listened,
@@ -820,13 +823,18 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
             'playlists': playlists
         }
 
+        logger.info(f"💾 Storing in database and syncing...")
         # Store in DB (with incremental detection for subsequent syncs)
         cache_user_data(google_id, user_data)
 
         # Update sync timestamp
         users.update_one({'google_id': google_id}, {'$set': {'last_full_sync': datetime.utcnow()}})
 
-        logger.info(f"Sync completed: {len(subscriptions)} channels, {len(music_listened)} songs, {len(playlists)} playlists")
+        logger.info(f"✅ ✅ ✅ SYNC COMPLETED SUCCESSFULLY:")
+        logger.info(f"   📊 {len(subscriptions)} channels")
+        logger.info(f"   🎬 {len(saved_data.get('saved_videos', []))} saved videos")
+        logger.info(f"   🎵 {len(music_listened)} music tracks")
+        logger.info(f"   📁 {len(playlists)} playlists")
 
         return {
             'success': True,
