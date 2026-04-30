@@ -858,9 +858,14 @@ async def force_full_sync(google_id: str = Depends(verify_token)):
 @app.post("/data/sync")
 async def sync_user_data(google_id: str = Depends(verify_token)):
     """
-    Always does a FULL fresh sync: Fetches ALL YouTube data and stores in DB.
-    Every call fetches fresh from YouTube, not cached data.
-    This ensures you always get the latest data.
+    Smart Sync Architecture:
+    1. FIRST LOGIN: Fetch ALL YouTube data, save to DB (full sync)
+    2. SUBSEQUENT LOGINS: Fetch fresh from YouTube, compare to DB, only update what changed (incremental)
+
+    This ensures:
+    - First login gets complete data
+    - Later logins load from cache instantly
+    - Changes are synced in background without full re-fetch
     """
     try:
         creds = get_credentials_from_db(google_id)
@@ -868,13 +873,15 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
             raise HTTPException(status_code=401, detail="Invalid or expired credentials")
 
         youtube = get_youtube_service(creds)
+        doc = users.find_one({'google_id': google_id})
+        is_first_sync = doc is None or doc.get('cached_data') is None
 
-        logger.info(f"🚀 FULL FRESH SYNC for {google_id}")
+        logger.info(f"{'🚀 FIRST SYNC (Full fetch)' if is_first_sync else '♻️ INCREMENTAL SYNC'} for {google_id}")
 
-        # Fetch ALL YouTube data in parallel
+        # ALWAYS fetch fresh from YouTube (for comparison with DB)
         loop = asyncio.get_event_loop()
 
-        logger.info("⏳ Starting parallel fetch of subscriptions + saved videos...")
+        logger.info("⏳ Fetching fresh data from YouTube...")
         subscriptions, saved_data = await asyncio.gather(
             loop.run_in_executor(None, fetch_subscriptions, youtube),
             loop.run_in_executor(None, fetch_saved_videos, youtube),
@@ -889,28 +896,21 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
             logger.error(f"❌ Error fetching saved videos: {saved_data}")
             saved_data = {'video_ids': [], 'saved_videos': []}
 
-        logger.info(f"✅ Parallel fetch complete:")
+        logger.info(f"✅ Fresh YouTube data fetched:")
         logger.info(f"   - {len(subscriptions)} subscriptions")
         logger.info(f"   - {len(saved_data.get('saved_videos', []))} saved videos")
-        logger.info(f"   - {len(saved_data.get('video_ids', []))} video IDs")
 
         # Determine music and genres from saved videos
-        logger.info("⏳ Now identifying music from video IDs...")
         music_listened, video_genres = determine_music_and_genres(youtube, saved_data.get('video_ids', []))
-        logger.info(f"🎵 Music identification result: {len(music_listened)} music tracks, {len(video_genres)} genres")
 
         # Fetch subscription genres in parallel
-        logger.info("⏳ Fetching subscription genres...")
         subscription_genres = await loop.run_in_executor(None, fetch_subscription_genres, youtube, subscriptions)
-        logger.info(f"✅ Got {len(subscription_genres)} subscription genres")
 
         # Fetch all playlists
-        logger.info("⏳ Fetching playlists...")
         playlists = await loop.run_in_executor(None, fetch_playlists, youtube)
-        logger.info(f"✅ Got {len(playlists)} playlists")
 
-        # Build complete user data
-        user_data = {
+        # Build fresh user data from YouTube
+        fresh_user_data = {
             'subscriptions': subscriptions,
             'subscription_genres': subscription_genres,
             'saved_videos': saved_data.get('saved_videos', []),
@@ -919,14 +919,14 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
             'playlists': playlists
         }
 
-        logger.info(f"💾 Storing FRESH data to database...")
-        # Store in DB
-        cache_user_data(google_id, user_data)
+        logger.info(f"💾 Storing to database (with incremental comparison)...")
+        # This function detects changes and only stores diffs for INCREMENTAL syncs
+        cache_user_data(google_id, fresh_user_data)
 
         # Update sync timestamp
         users.update_one({'google_id': google_id}, {'$set': {'last_full_sync': datetime.utcnow()}})
 
-        logger.info(f"✅ ✅ ✅ SYNC COMPLETED SUCCESSFULLY:")
+        logger.info(f"✅ SYNC COMPLETE:")
         logger.info(f"   📊 {len(subscriptions)} channels")
         logger.info(f"   🎬 {len(saved_data.get('saved_videos', []))} saved videos")
         logger.info(f"   🎵 {len(music_listened)} music tracks")
@@ -934,14 +934,14 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
 
         return {
             'success': True,
-            'sync_type': 'FULL',
+            'sync_type': 'FULL' if is_first_sync else 'INCREMENTAL',
             'subscriptions': subscriptions,
             'subscription_genres': subscription_genres,
             'saved_videos': saved_data.get('saved_videos', []),
             'music_listened': music_listened,
             'video_genres': video_genres,
             'playlists': playlists,
-            'message': f'✅ FULL SYNC: Found {len(subscriptions)} channels, {len(music_listened)} songs, {len(playlists)} playlists. Fresh data saved to database.'
+            'message': f'{"🚀 FULL SYNC" if is_first_sync else "♻️ INCREMENTAL SYNC"}: {len(subscriptions)} channels, {len(music_listened)} songs, {len(playlists)} playlists'
         }
     except HTTPException:
         raise

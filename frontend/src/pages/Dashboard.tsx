@@ -141,14 +141,28 @@ const Dashboard = () => {
       return;
     }
 
-    console.log("✅ User authenticated, always fetching fresh YouTube data...");
+    console.log("✅ User authenticated, checking cached data");
 
     const fetchData = async () => {
       try {
-        // Always fetch fresh from YouTube first, don't use cached data
-        console.log("⏳ Fetching FRESH data from YouTube...");
-        setLoading(false);
-        await syncUserData();
+        const response = await authClient.get("/data/me");
+        console.log("✅ Data response received", { cached: response.data.cached });
+
+        // If no cached data, immediately trigger full sync
+        if (!response.data.cached) {
+          console.log("⏳ No cached data found, doing FULL sync from YouTube...");
+          setLoading(false);
+          await syncUserData();
+        } else {
+          // Set cached data and show it immediately
+          console.log("✅ Showing cached data, checking for changes in background...");
+          setUserData(response.data);
+          setLoading(false);
+
+          // Trigger incremental sync in background to check for changes
+          console.log("📡 Syncing in background to check for changes...");
+          syncUserData().catch(err => console.error("Background sync error:", err));
+        }
       } catch (error: any) {
         console.error("❌ Error fetching user data:", error);
         setLoading(false);
