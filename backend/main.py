@@ -794,50 +794,18 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
             logger.error(f"Error fetching saved videos: {saved_data}")
             saved_data = {'video_ids': [], 'saved_videos': []}
 
-        logger.info(f"Fetched {len(subscriptions)} subscriptions, {len(saved_data.get('video_ids', []))} video IDs")
-
-        # Fetch genres and music in parallel
-        channel_ids = [s['channel_id'] for s in subscriptions] if subscriptions else []
-
-        subscription_genres, other_music, watch_history_result = await asyncio.gather(
-            loop.run_in_executor(None, fetch_subscription_genres, youtube, channel_ids),
-            loop.run_in_executor(None, determine_music_and_genres, youtube, saved_data.get('video_ids', [])),
-            loop.run_in_executor(None, count_music_watch_times, youtube),
-            return_exceptions=True
-        )
-
-        # Handle exceptions
-        if isinstance(subscription_genres, Exception):
-            logger.error(f"Error fetching genres: {subscription_genres}")
-            subscription_genres = []
-
-        if isinstance(other_music, Exception):
-            logger.error(f"Error determining music: {other_music}")
-            other_music = ([], [])
-
-        if isinstance(watch_history_result, Exception):
-            logger.error(f"Error fetching watch history: {watch_history_result}")
-            watch_history_result = ({}, {})
-
+        logger.info(f"✅ Fetched {len(subscriptions)} subscriptions")
+        logger.info(f"✅ Fetched {len(saved_data.get('saved_videos', []))} saved videos")
+        logger.info(f"✅ Fetched {len(saved_data.get('video_ids', []))} video IDs")
         # Unpack music data
-        other_music_listened, video_genres = other_music
-        watch_counts, music_from_history = watch_history_result
+        music_listened, video_genres = music_and_genres
 
-        # Combine music: ALL from watch history + liked music not in history
-        music_listened = list(music_from_history.values()) if music_from_history else []
-
-        for track in other_music_listened:
-            if track['video_id'] not in music_from_history:
-                track['watch_count'] = watch_counts.get(track['video_id'], 0)
-                music_listened.append(track)
-
-        # Sort by watch count
-        music_listened.sort(key=lambda x: x.get('watch_count', 0), reverse=True)
+        logger.info(f"Fetched {len(saved_data.get('saved_videos', []))} total saved videos, {len(music_listened)} are music tracks")
 
         # Fetch all playlists
         playlists = await loop.run_in_executor(None, fetch_playlists, youtube)
 
-        logger.info(f"Fetched {len(music_listened)} music tracks, {len(playlists)} playlists")
+        logger.info(f"Fetched {len(playlists)} playlists")
 
         # Build complete user data
         user_data = {
