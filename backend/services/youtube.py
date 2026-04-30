@@ -57,28 +57,34 @@ def fetch_saved_videos(youtube):
     video_ids = []
     try:
         # Liked videos
-        request = youtube.videos().list(part='snippet', myRating='like', maxResults=50)
+        request = youtube.videos().list(part='snippet', myRating='like', maxResults=50, order='date')
         while request:
             response = request.execute()
-            for video in response.get('items', []):
-                title = sanitize_string(video['snippet']['title'])
+            batch_size = len(response.get('items', []))
+            logger.info(f"Fetched liked videos batch: {batch_size} items")
+            for sub in response.get('items', []):
+                title = sanitize_string(sub['snippet']['title'])
                 if title not in [v['title'] for v in saved_videos]:
                     saved_videos.append({
                         'title': title,
-                        'video_id': video['id'],
-                        'thumbnail_url': video['snippet']['thumbnails'].get('medium', {}).get('url', '')
+                        'video_id': sub['id'],
+                        'thumbnail_url': sub['snippet']['thumbnails'].get('medium', {}).get('url', '')
                     })
-                    video_ids.append(video['id'])
+                    video_ids.append(sub['id'])
             request = youtube.videos().list_next(request, response)
+        logger.info(f"✅ Total liked videos: {len(saved_videos)}")
         # Playlist items
         playlist_request = youtube.playlists().list(part='id', mine=True, maxResults=50)
         while playlist_request:
             playlist_response = playlist_request.execute()
+            logger.info(f"Fetched playlists batch: {len(playlist_response.get('items', []))} playlists")
             for playlist in playlist_response.get('items', []):
                 playlist_id = playlist['id']
                 item_request = youtube.playlistItems().list(part='snippet', playlistId=playlist_id, maxResults=50)
                 while item_request:
                     item_response = item_request.execute()
+                    batch_size = len(item_response.get('items', []))
+                    logger.info(f"  Playlist {playlist_id}: fetched {batch_size} items")
                     for item in item_response.get('items', []):
                         title = sanitize_string(item['snippet'].get('title', 'Unknown'))
                         video_id = item['snippet']['resourceId'].get('videoId')
@@ -91,6 +97,7 @@ def fetch_saved_videos(youtube):
                             video_ids.append(video_id)
                     item_request = youtube.playlistItems().list_next(item_request, item_response)
             playlist_request = youtube.playlists().list_next(playlist_request, playlist_response)
+        logger.info(f"✅ Final saved videos total: {len(saved_videos)}")
     except Exception as e:
         logger.error(f"Error fetching saved videos: {str(e)}")
     return {'saved_videos': saved_videos, 'video_ids': video_ids}
