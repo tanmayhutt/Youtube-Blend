@@ -58,84 +58,92 @@ def fetch_subscription_genres(youtube, channel_ids: List[str]):
     return list(set(genres))
 
 def fetch_saved_videos(youtube):
-    """Fetches liked videos and playlist items."""
+    """Fetches liked videos and saved videos from playlists."""
     saved_videos = []
     video_ids = []
     try:
         logger.info("🎬 Starting fetch_saved_videos...")
 
-        # Liked videos
-        logger.info("📺 Fetching liked videos (myRating='like')...")
-        request = youtube.videos().list(part='snippet', myRating='like', maxResults=50, order='date')
-        liked_count = 0
-        while request:
-            response = request.execute()
-            batch_size = len(response.get('items', []))
-            liked_count += batch_size
-            logger.info(f"  Batch: {batch_size} liked videos (total so far: {liked_count})")
+        # Try Method 1: Liked videos via myRating
+        logger.info("📺 Method 1: Fetching liked videos (myRating='like')...")
+        try:
+            request = youtube.videos().list(part='snippet', myRating='like', maxResults=50, order='date')
+            liked_count = 0
+            while request:
+                response = request.execute()
+                batch_size = len(response.get('items', []))
+                liked_count += batch_size
+                logger.info(f"  Method 1 Batch: {batch_size} liked videos (total: {liked_count})")
 
-            for sub in response.get('items', []):
-                title = sanitize_string(sub['snippet']['title'])
-                if title not in [v['title'] for v in saved_videos]:
-                    saved_videos.append({
-                        'title': title,
-                        'video_id': sub['id'],
-                        'thumbnail_url': sub['snippet']['thumbnails'].get('medium', {}).get('url', '')
-                    })
-                    video_ids.append(sub['id'])
+                for sub in response.get('items', []):
+                    title = sanitize_string(sub['snippet']['title'])
+                    if title not in [v['title'] for v in saved_videos]:
+                        saved_videos.append({
+                            'title': title,
+                            'video_id': sub['id'],
+                            'thumbnail_url': sub['snippet']['thumbnails'].get('medium', {}).get('url', '')
+                        })
+                        video_ids.append(sub['id'])
 
-            request = youtube.videos().list_next(request, response)
-            if request:
-                logger.info(f"  ⏳ More liked videos available, fetching next page...")
+                request = youtube.videos().list_next(request, response)
+                if request:
+                    logger.info(f"  ⏳ More liked videos available, fetching next page...")
 
-        logger.info(f"✅ Liked videos: {len(saved_videos)} videos, {len(video_ids)} IDs")
+            logger.info(f"✅ Method 1 Result: {len(saved_videos)} liked videos, {len(video_ids)} IDs")
+        except Exception as e:
+            logger.warning(f"⚠️ Method 1 (myRating='like') failed: {str(e)}")
 
-        # Playlist items
-        logger.info("📁 Fetching playlists...")
-        playlist_request = youtube.playlists().list(part='id', mine=True, maxResults=50)
-        playlist_count = 0
-        while playlist_request:
-            playlist_response = playlist_request.execute()
-            playlists_batch = len(playlist_response.get('items', []))
-            playlist_count += playlists_batch
-            logger.info(f"  Playlists batch: {playlists_batch} playlists (total: {playlist_count})")
+        # Method 2: Fetch from "Liked Videos" playlist if it exists
+        logger.info("📁 Method 2: Fetching from playlists (including 'Liked Videos' playlist)...")
+        try:
+            playlist_request = youtube.playlists().list(part='id,snippet', mine=True, maxResults=50)
+            playlists_found = 0
+            while playlist_request:
+                playlist_response = playlist_request.execute()
+                playlists_found += len(playlist_response.get('items', []))
+                logger.info(f"  Found {len(playlist_response.get('items', []))} playlists")
 
-            for playlist in playlist_response.get('items', []):
-                playlist_id = playlist['id']
-                item_request = youtube.playlistItems().list(part='snippet', playlistId=playlist_id, maxResults=50)
-                items_in_playlist = 0
+                for playlist in playlist_response.get('items', []):
+                    playlist_id = playlist['id']
+                    playlist_title = playlist['snippet']['title']
+                    logger.info(f"    Processing playlist: {playlist_title}")
 
-                while item_request:
-                    item_response = item_request.execute()
-                    batch_size = len(item_response.get('items', []))
-                    items_in_playlist += batch_size
+                    item_request = youtube.playlistItems().list(part='snippet', playlistId=playlist_id, maxResults=50)
+                    items_from_this_playlist = 0
 
-                    for item in item_response.get('items', []):
-                        title = sanitize_string(item['snippet'].get('title', 'Unknown'))
-                        video_id = item['snippet']['resourceId'].get('videoId')
-                        if title not in [v['title'] for v in saved_videos] and video_id:
-                            saved_videos.append({
-                                'title': title,
-                                'video_id': video_id,
-                                'thumbnail_url': item['snippet']['thumbnails'].get('medium', {}).get('url', '')
-                            })
-                            video_ids.append(video_id)
+                    while item_request:
+                        item_response = item_request.execute()
+                        batch_size = len(item_response.get('items', []))
+                        items_from_this_playlist += batch_size
 
-                    item_request = youtube.playlistItems().list_next(item_request, item_response)
+                        for item in item_response.get('items', []):
+                            title = sanitize_string(item['snippet'].get('title', 'Unknown'))
+                            video_id = item['snippet']['resourceId'].get('videoId')
+                            if title not in [v['title'] for v in saved_videos] and video_id:
+                                saved_videos.append({
+                                    'title': title,
+                                    'video_id': video_id,
+                                    'thumbnail_url': item['snippet']['thumbnails'].get('medium', {}).get('url', ''),
+                                    'from_playlist': playlist_title
+                                })
+                                video_ids.append(video_id)
 
-                logger.info(f"    Playlist {playlist_id}: {items_in_playlist} items added")
+                        item_request = youtube.playlistItems().list_next(item_request, item_response)
 
-            playlist_request = youtube.playlists().list_next(playlist_request, playlist_response)
+                    logger.info(f"      Added {items_from_this_playlist} items from this playlist")
 
-        logger.info(f"✅ Final: {len(saved_videos)} total videos, {len(video_ids)} video IDs")
+                playlist_request = youtube.playlists().list_next(playlist_request, playlist_response)
+
+            logger.info(f"✅ Method 2 Result: Total {len(saved_videos)} videos, {len(video_ids)} IDs")
+        except Exception as e:
+            logger.warning(f"⚠️ Method 2 (playlists) failed: {str(e)}")
+
+        logger.info(f"🎬 fetch_saved_videos returning: {len(saved_videos)} videos, {len(video_ids)} IDs")
 
     except Exception as e:
-        logger.error(f"❌ Error fetching saved videos: {str(e)}")
-        logger.exception("Full traceback:")  # This logs the full stack trace
-        # Still return what we have so far
+        logger.error(f"❌ Error in fetch_saved_videos: {str(e)}")
+        logger.exception("Full traceback:")
 
-    logger.info(f"🎬 fetch_saved_videos returning: {len(saved_videos)} videos, {len(video_ids)} IDs")
-    return {'saved_videos': saved_videos, 'video_ids': video_ids}
 
 def determine_music_and_genres(youtube, video_ids: List[str]) -> Tuple[List[Dict], List[str]]:
     """Identifies music videos and genres from video IDs."""
