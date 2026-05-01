@@ -3,13 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ChannelCard } from "@/components/ChannelCard";
 import { VideoCard } from "@/components/VideoCard";
 import { Badge } from "@/components/ui/badge";
 import { FloatingChannels } from "@/components/FloatingChannels";
 import { MusicShowcase } from "@/components/MusicShowcase";
-import { Youtube, Link as LinkIcon, LogOut, Loader2, Copy, Check, TrendingUp, Video, Music, List, ChevronDown, RefreshCw } from "lucide-react";
+import { Youtube, Link as LinkIcon, LogOut, Loader2, Copy, Check, TrendingUp, Video, Music, List, ChevronDown, RefreshCw, Users, Disc3, Play } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { Footer } from "@/components/Footer";
 import { authClient, clearTokens, isAuthenticated, saveTokens } from "@/lib/auth";
@@ -282,209 +282,205 @@ const Dashboard = () => {
 
         <Separator className="my-8" />
 
-        {/* User Data with Fun Components */}
-        <div className="animate-fade-in space-y-8">
-          <div className="text-center">
-            <h2 className="text-4xl font-bold mb-2 bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent">
+        {/* Quick Stats */}
+        {userData && (
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold mb-4">Quick Stats</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Card className="p-4 bg-gradient-to-br from-red-500/10 to-orange-500/10 border-red-500/20">
+                <div className="text-2xl font-bold text-red-600">{userData.subscriptions?.length || 0}</div>
+                <p className="text-xs text-muted-foreground mt-2">Subscriptions</p>
+              </Card>
+              <Card className="p-4 bg-gradient-to-br from-purple-500/10 to-pink-500/10 border-purple-500/20">
+                <div className="text-2xl font-bold text-purple-600">{userData.music_listened?.length || 0}</div>
+                <p className="text-xs text-muted-foreground mt-2">Music Tracks</p>
+              </Card>
+              <Card className="p-4 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border-blue-500/20">
+                <div className="text-2xl font-bold text-blue-600">{userData.saved_videos?.length || 0}</div>
+                <p className="text-xs text-muted-foreground mt-2">Saved Videos</p>
+              </Card>
+              <Card className="p-4 bg-gradient-to-br from-green-500/10 to-emerald-500/10 border-green-500/20">
+                <div className="text-2xl font-bold text-green-600">{userData.playlists?.length || 0}</div>
+                <p className="text-xs text-muted-foreground mt-2">Playlists</p>
+              </Card>
+            </div>
+          </div>
+        )}
+
+        <Separator className="my-8" />
+
+        {/* Section-based Accordion Layout */}
+        {userData && (
+          <div className="space-y-4">
+            <h2 className="text-3xl font-bold mb-6 bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent">
               Your YouTube Universe
             </h2>
-            <p className="text-muted-foreground">Explore your viewing habits in a fun way</p>
-          </div>
 
-          {userData && (
-            <>
-              {/* Music Showcase - Emphasized */}
+            <Accordion type="single" collapsible className="space-y-2">
+              {/* Music Section */}
               {userData.music_listened && userData.music_listened.length > 0 && (
-                <div>
-                  <MusicShowcase musicTracks={userData.music_listened} />
-                </div>
+                <AccordionItem value="music" className="border rounded-lg px-4">
+                  <AccordionTrigger className="hover:no-underline">
+                    <div className="flex items-center gap-3">
+                      <Music className="w-5 h-5 text-purple-600" />
+                      <span className="font-semibold">Music Tracks</span>
+                      <Badge variant="secondary">{userData.music_listened.length}</Badge>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="pt-4">
+                    <MusicShowcase musicTracks={userData.music_listened} />
+                  </AccordionContent>
+                </AccordionItem>
               )}
 
-              {/* Floating Channels Section */}
-              <div className="grid grid-cols-1 gap-8">
-                {userData.subscriptions && userData.subscriptions.length > 0 && (
-                  <FloatingChannels channels={userData.subscriptions} title="Your Favorite Channels" />
-                )}
-              </div>
-
-              {/* Tabs for detailed browsing */}
-              <div>
-                <Tabs defaultValue="videos" className="w-full">
-                  <TabsList className="grid w-full grid-cols-4 md:grid-cols-5 mb-8">
-                    <TabsTrigger value="videos" className="flex items-center gap-1 text-xs md:text-sm">
-                      <Video className="w-4 h-4" />
-                      <span className="hidden sm:inline">Videos</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="playlists" className="flex items-center gap-1 text-xs md:text-sm">
-                      <List className="w-4 h-4" />
-                      <span className="hidden sm:inline">Playlists</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="stats" className="flex items-center gap-1 text-xs md:text-sm">
-                      <TrendingUp className="w-4 h-4" />
-                      <span className="hidden sm:inline">Stats</span>
-                    </TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="videos" className="space-y-6">
-                    <div>
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-xl font-semibold">Your Saved Videos</h3>
-                          <Badge variant="secondary">{userData.saved_videos?.length || 0}</Badge>
-                        </div>
-                      </div>
-                      {userData.saved_videos && userData.saved_videos.length > 0 ? (
-                        <div className="space-y-4">
-                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                            {userData.saved_videos
-                              .slice(0, expandedVideos ? undefined : 8)
-                              .map((video: any, index: number) => (
-                                <VideoCard key={index} title={video.title} thumbnailUrl={video.thumbnail_url} videoId={video.video_id} />
-                              ))}
-                          </div>
-                          {(userData.saved_videos?.length || 0) > 8 && (
-                            <Button
-                              onClick={() => setExpandedVideos(!expandedVideos)}
-                              variant="outline"
-                              className="w-full gap-2"
-                            >
-                              {expandedVideos ? (
-                                <>
-                                  Show Less
-                                  <ChevronDown className="w-4 h-4 transform rotate-180" />
-                                </>
-                              ) : (
-                                <>
-                                  Show All {userData.saved_videos?.length} Videos
-                                  <ChevronDown className="w-4 h-4" />
-                                </>
-                              )}
-                            </Button>
-                          )}
-                        </div>
-                      ) : (
-                        <Card className="p-8 text-center">
-                          <p className="text-muted-foreground">No saved videos found</p>
-                        </Card>
-                      )}
+              {/* Channels Section */}
+              {userData.subscriptions && userData.subscriptions.length > 0 && (
+                <AccordionItem value="channels" className="border rounded-lg px-4">
+                  <AccordionTrigger className="hover:no-underline">
+                    <div className="flex items-center gap-3">
+                      <Users className="w-5 h-5 text-red-600" />
+                      <span className="font-semibold">Your Channels</span>
+                      <Badge variant="secondary">{userData.subscriptions.length}</Badge>
                     </div>
-                  </TabsContent>
+                  </AccordionTrigger>
+                  <AccordionContent className="pt-4">
+                    <FloatingChannels channels={userData.subscriptions} title="" />
+                  </AccordionContent>
+                </AccordionItem>
+              )}
 
-                  <TabsContent value="playlists" className="space-y-6">
-                    <div>
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-xl font-semibold">Your Playlists</h3>
-                          <Badge variant="secondary">{userData.playlists?.length || 0}</Badge>
-                        </div>
-                      </div>
-                      {userData.playlists && userData.playlists.length > 0 ? (
-                        <div className="space-y-4">
-                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                            {userData.playlists
-                              .slice(0, expandedPlaylists ? undefined : 8)
-                              .map((playlist: any, index: number) => (
-                                <VideoCard key={index} title={playlist.title} thumbnailUrl={playlist.thumbnail_url} playlistId={playlist.playlist_id} />
-                              ))}
-                          </div>
-                          {(userData.playlists?.length || 0) > 8 && (
-                            <Button
-                              onClick={() => setExpandedPlaylists(!expandedPlaylists)}
-                              variant="outline"
-                              className="w-full gap-2"
-                            >
-                              {expandedPlaylists ? (
-                                <>
-                                  Show Less
-                                  <ChevronDown className="w-4 h-4 transform rotate-180" />
-                                </>
-                              ) : (
-                                <>
-                                  Show All {userData.playlists?.length} Playlists
-                                  <ChevronDown className="w-4 h-4" />
-                                </>
-                              )}
-                            </Button>
-                          )}
-                        </div>
-                      ) : (
-                        <Card className="p-8 text-center">
-                          <p className="text-muted-foreground">No playlists found</p>
-                        </Card>
-                      )}
+              {/* Saved Videos Section */}
+              {userData.saved_videos && userData.saved_videos.length > 0 && (
+                <AccordionItem value="videos" className="border rounded-lg px-4">
+                  <AccordionTrigger className="hover:no-underline">
+                    <div className="flex items-center gap-3">
+                      <Video className="w-5 h-5 text-blue-600" />
+                      <span className="font-semibold">Saved Videos</span>
+                      <Badge variant="secondary">{userData.saved_videos.length}</Badge>
                     </div>
-                  </TabsContent>
-
-                  <TabsContent value="stats" className="space-y-6">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <Card className="p-6 text-center bg-gradient-to-br from-red-500/10 to-orange-500/10 border-red-500/20">
-                        <div className="text-3xl font-bold text-red-600">{userData.subscriptions?.length || 0}</div>
-                        <p className="text-xs text-muted-foreground mt-2">Subscriptions</p>
-                      </Card>
-                      <Card className="p-6 text-center bg-gradient-to-br from-purple-500/10 to-pink-500/10 border-purple-500/20">
-                        <div className="text-3xl font-bold text-purple-600">{userData.music_listened?.length || 0}</div>
-                        <p className="text-xs text-muted-foreground mt-2">Music Tracks</p>
-                      </Card>
-                      <Card className="p-6 text-center bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border-blue-500/20">
-                        <div className="text-3xl font-bold text-blue-600">{userData.saved_videos?.length || 0}</div>
-                        <p className="text-xs text-muted-foreground mt-2">Saved Videos</p>
-                      </Card>
-                      <Card className="p-6 text-center bg-gradient-to-br from-green-500/10 to-emerald-500/10 border-green-500/20">
-                        <div className="text-3xl font-bold text-green-600">{userData.playlists?.length || 0}</div>
-                        <p className="text-xs text-muted-foreground mt-2">Playlists</p>
-                      </Card>
+                  </AccordionTrigger>
+                  <AccordionContent className="pt-4 space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {userData.saved_videos
+                        .slice(0, expandedVideos ? undefined : 12)
+                        .map((video: any, index: number) => (
+                          <VideoCard key={index} title={video.title} thumbnailUrl={video.thumbnail_url} videoId={video.video_id} />
+                        ))}
                     </div>
-                  </TabsContent>
-                </Tabs>
-              </div>
-
-              {/* Genre Section at Bottom */}
-              <div className="space-y-6 border-t border-border/50 pt-8 mt-8">
-                <div>
-                  <div className="flex items-center gap-2 mb-4">
-                    <h3 className="text-2xl font-semibold">Your Favorite Genres</h3>
-                    <Badge variant="secondary" className="text-sm">
-                      {new Set([...(userData.subscription_genres || []), ...(userData.video_genres || [])]).size}
-                    </Badge>
-                  </div>
-                  <p className="text-muted-foreground text-sm mb-4">These genres define your YouTube taste across your subscriptions and saved content.</p>
-                  <div className="flex flex-wrap gap-3">
-                    {Array.from(new Set([...(userData.subscription_genres || []), ...(userData.video_genres || [])]))
-                      .sort()
-                      .slice(0, expandedGenres ? undefined : 12)
-                      .map((genre: any, index: number) => (
-                        <Badge key={index} variant="outline" className="capitalize px-4 py-2 text-sm border-2 rounded-full">
-                          {String(genre).replace(/_/g, " ")}
-                        </Badge>
-                      ))}
-                  </div>
-                  {(() => {
-                    const uniqueGenres = new Set([...(userData.subscription_genres || []), ...(userData.video_genres || [])]);
-                    return uniqueGenres.size > 12 && (
+                    {(userData.saved_videos?.length || 0) > 12 && (
                       <Button
-                        onClick={() => setExpandedGenres(!expandedGenres)}
+                        onClick={() => setExpandedVideos(!expandedVideos)}
                         variant="outline"
-                        className="mt-4 gap-2"
+                        className="w-full gap-2"
                       >
-                        {expandedGenres ? (
+                        {expandedVideos ? (
                           <>
                             Show Less
                             <ChevronDown className="w-4 h-4 transform rotate-180" />
                           </>
                         ) : (
                           <>
-                            Show All {uniqueGenres.size} Genres
+                            Show All {userData.saved_videos?.length} Videos
                             <ChevronDown className="w-4 h-4" />
                           </>
                         )}
                       </Button>
-                    );
-                  })()}
-                </div>
-              </div>
-            </>
-          )}
-        </div>
+                    )}
+                  </AccordionContent>
+                </AccordionItem>
+              )}
+
+              {/* Playlists Section */}
+              {userData.playlists && userData.playlists.length > 0 && (
+                <AccordionItem value="playlists" className="border rounded-lg px-4">
+                  <AccordionTrigger className="hover:no-underline">
+                    <div className="flex items-center gap-3">
+                      <List className="w-5 h-5 text-green-600" />
+                      <span className="font-semibold">Your Playlists</span>
+                      <Badge variant="secondary">{userData.playlists.length}</Badge>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="pt-4 space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {userData.playlists
+                        .slice(0, expandedPlaylists ? undefined : 12)
+                        .map((playlist: any, index: number) => (
+                          <VideoCard key={index} title={playlist.title} thumbnailUrl={playlist.thumbnail_url} playlistId={playlist.playlist_id} />
+                        ))}
+                    </div>
+                    {(userData.playlists?.length || 0) > 12 && (
+                      <Button
+                        onClick={() => setExpandedPlaylists(!expandedPlaylists)}
+                        variant="outline"
+                        className="w-full gap-2"
+                      >
+                        {expandedPlaylists ? (
+                          <>
+                            Show Less
+                            <ChevronDown className="w-4 h-4 transform rotate-180" />
+                          </>
+                        ) : (
+                          <>
+                            Show All {userData.playlists?.length} Playlists
+                            <ChevronDown className="w-4 h-4" />
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </AccordionContent>
+                </AccordionItem>
+              )}
+
+              {/* Genres Section */}
+              {(() => {
+                const uniqueGenres = new Set([...(userData.subscription_genres || []), ...(userData.video_genres || [])]);
+                return uniqueGenres.size > 0 && (
+                  <AccordionItem value="genres" className="border rounded-lg px-4">
+                    <AccordionTrigger className="hover:no-underline">
+                      <div className="flex items-center gap-3">
+                        <Disc3 className="w-5 h-5 text-amber-600" />
+                        <span className="font-semibold">Favorite Genres</span>
+                        <Badge variant="secondary">{uniqueGenres.size}</Badge>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pt-4 space-y-4">
+                      <p className="text-sm text-muted-foreground">These genres define your YouTube taste across your subscriptions and saved content.</p>
+                      <div className="flex flex-wrap gap-3">
+                        {Array.from(uniqueGenres)
+                          .sort()
+                          .slice(0, expandedGenres ? undefined : 20)
+                          .map((genre: any, index: number) => (
+                            <Badge key={index} variant="outline" className="capitalize px-4 py-2 text-sm border-2 rounded-full">
+                              {String(genre).replace(/_/g, " ")}
+                            </Badge>
+                          ))}
+                      </div>
+                      {uniqueGenres.size > 20 && (
+                        <Button
+                          onClick={() => setExpandedGenres(!expandedGenres)}
+                          variant="outline"
+                          className="w-full gap-2"
+                        >
+                          {expandedGenres ? (
+                            <>
+                              Show Less
+                              <ChevronDown className="w-4 h-4 transform rotate-180" />
+                            </>
+                          ) : (
+                            <>
+                              Show All {uniqueGenres.size} Genres
+                              <ChevronDown className="w-4 h-4" />
+                            </>
+                          )}
+                        </Button>
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })()}
+            </Accordion>
+          </div>
+        )}
       </main>
       <Footer />
     </div>
