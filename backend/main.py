@@ -1664,6 +1664,16 @@ async def debug_videos_only(google_id: str = Depends(verify_token)):
         return {'error': str(e)}
 
 
+@app.get("/debug/cors")
+async def debug_cors():
+    """Show what CORS frontend URL is configured."""
+    return {
+        'frontend_url_env': os.getenv("FRONTEND_URL"),
+        'frontend_url_being_used': frontend_origin,
+        'note': 'If frontend_url_env is None, restart the app on Render to load new env vars'
+    }
+
+
 @app.get("/compare/generate_link")
 async def generate_comparison_link(google_id: str = Depends(verify_token)):
     """Generate a shareable comparison link for the authenticated user."""
