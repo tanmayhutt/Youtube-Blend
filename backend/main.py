@@ -107,7 +107,7 @@ def build_redirect_uri() -> str:
     return f"{scheme}://{host}/auth/callback"
 
 # CORS - Allow frontend origin
-frontend_url = os.getenv("FRONTEND_URL", "https://blend-youtube.onrender.com")
+frontend_url = os.getenv("FRONTEND_URL", "https://youtube-blend.vercel.app")
 # Remove trailing slash and ensure it's a valid origin
 frontend_origin = frontend_url.rstrip('/')
 app.add_middleware(
