@@ -859,14 +859,10 @@ async def force_full_sync(google_id: str = Depends(verify_token)):
 @app.post("/data/sync")
 async def sync_user_data(google_id: str = Depends(verify_token)):
     """
-    Smart Sync Architecture:
+    Smart Sync Architecture with Quota Protection:
     1. FIRST LOGIN: Fetch ALL YouTube data, save to DB (full sync)
     2. SUBSEQUENT LOGINS: Fetch fresh from YouTube, compare to DB, only update what changed (incremental)
-
-    This ensures:
-    - First login gets complete data
-    - Later logins load from cache instantly
-    - Changes are synced in background without full re-fetch
+    3. QUOTA EXCEEDED: Return cached data gracefully instead of failing
     """
     try:
         creds = get_credentials_from_db(google_id)
@@ -888,6 +884,32 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
             loop.run_in_executor(None, fetch_saved_videos, youtube),
             return_exceptions=True
         )
+
+        # Check for quota exceeded errors
+        quota_exceeded = False
+        if isinstance(subscriptions, Exception) and "quotaExceeded" in str(subscriptions):
+            quota_exceeded = True
+            logger.warning("⚠️  QUOTA EXCEEDED during subscriptions fetch")
+        if isinstance(saved_data, Exception) and "quotaExceeded" in str(saved_data):
+            quota_exceeded = True
+            logger.warning("⚠️  QUOTA EXCEEDED during saved videos fetch")
+
+        # If quota exceeded, return cached data instead of failing
+        if quota_exceeded and not is_first_sync:
+            logger.info("💾 Quota exceeded - returning cached data instead")
+            cached_data = doc.get('cached_data', {})
+            return {
+                'success': True,
+                'sync_type': 'CACHED',
+                'subscriptions': cached_data.get('subscriptions', []),
+                'subscription_genres': cached_data.get('subscription_genres', []),
+                'saved_videos': cached_data.get('saved_videos', []),
+                'music_listened': cached_data.get('music_listened', []),
+                'video_genres': cached_data.get('video_genres', []),
+                'playlists': cached_data.get('playlists', []),
+                'message': '⚠️  API quota exceeded. Returning cached data. Please try again later.',
+                'warning': 'quotaExceeded'
+            }
 
         # Handle exceptions from parallel fetch
         if isinstance(subscriptions, Exception):

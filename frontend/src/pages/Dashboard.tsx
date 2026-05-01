@@ -41,10 +41,20 @@ const Dashboard = () => {
         video_genres: response.data.video_genres,
         playlists: response.data.playlists,
       });
-      toast({
-        title: `${response.data.sync_type} Sync Complete`,
-        description: response.data.message,
-      });
+
+      // Show warning if quota exceeded
+      if (response.data.warning === 'quotaExceeded') {
+        toast({
+          title: "⚠️ API Quota Exceeded",
+          description: response.data.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: `${response.data.sync_type} Sync Complete`,
+          description: response.data.message,
+        });
+      }
     } catch (error: any) {
       console.error("❌ Error syncing data:", error);
       toast({
@@ -100,13 +110,14 @@ const Dashboard = () => {
           await syncUserData();
         } else {
           // Set cached data and show it immediately
-          console.log("✅ Showing cached data, checking for changes in background...");
+          console.log("✅ Showing cached data");
           setUserData(response.data);
           setLoading(false);
 
-          // Trigger incremental sync in background to check for changes
-          console.log("📡 Syncing in background to check for changes...");
-          syncUserData().catch(err => console.error("Background sync error:", err));
+          // QUOTA OPTIMIZATION: Removed automatic background sync
+          // Users can manually click "Refresh" button if they want fresh data
+          // This prevents quota waste from repeated auto-syncs
+          console.log("💡 Background sync disabled to conserve API quota. Click 'Refresh' to sync manually.");
         }
       } catch (error: any) {
         console.error("❌ Error fetching user data:", error);
