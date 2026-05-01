@@ -237,6 +237,9 @@ def determine_music_and_genres(youtube, video_ids: List[str]) -> Tuple[List[Dict
         logger.exception("Full traceback for music identification:")
 
     logger.info(f"🎵 determine_music_and_genres returning: {len(music_listened)} music, {len(set(video_genres))} genres")
+    return music_listened, video_genres
+
+
 def fetch_playlists(youtube):
     """Fetches user's playlists."""
     playlists = []
