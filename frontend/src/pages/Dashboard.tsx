@@ -308,39 +308,29 @@ const Dashboard = () => {
 
         <Separator className="my-8" />
 
-        {/* Section-based Grid Layout - Parallel Display */}
+        {/* Full-Width Navbar-Style Sections */}
         {userData && (
           <div>
-            <h2 className="text-3xl font-bold mb-8 bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent">
+            <h2 className="text-3xl font-bold mb-12 bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent">
               Your YouTube Universe
             </h2>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
+            <div className="space-y-8">
               {/* Music Section */}
               {userData.music_listened && userData.music_listened.length > 0 && (
                 <div>
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                      <Music className="w-6 h-6 text-purple-600" />
+                  <div className="flex items-center gap-4 mb-6 pb-4 border-b-2 border-purple-200 dark:border-purple-900/50">
+                    <div className="p-4 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                      <Music className="w-7 h-7 text-purple-600" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-xl font-bold">Music Tracks</h3>
-                      <p className="text-xs text-muted-foreground">All your favorite music</p>
+                      <h3 className="text-2xl font-bold">Music Tracks</h3>
+                      <p className="text-sm text-muted-foreground">All your favorite music</p>
                     </div>
-                    <Badge>{userData.music_listened.length}</Badge>
+                    <Badge className="text-lg px-4 py-2">{userData.music_listened.length}</Badge>
                   </div>
-                  <Card className="p-6 border-l-4 border-l-purple-600 h-full">
-                    <div className="space-y-3 max-h-96 overflow-y-auto">
-                      {userData.music_listened.slice(0, 8).map((track: any, index: number) => (
-                        <div key={index} className="text-sm">
-                          <p className="font-medium truncate">{track.title}</p>
-                          <p className="text-xs text-muted-foreground">{track.view_count?.toLocaleString()} views</p>
-                        </div>
-                      ))}
-                      {userData.music_listened.length > 8 && (
-                        <p className="text-xs text-muted-foreground pt-2">+{userData.music_listened.length - 8} more</p>
-                      )}
-                    </div>
+                  <Card className="p-8 border-l-4 border-l-purple-600">
+                    <MusicShowcase musicTracks={userData.music_listened} />
                   </Card>
                 </div>
               )}
@@ -348,27 +338,18 @@ const Dashboard = () => {
               {/* Channels Section */}
               {userData.subscriptions && userData.subscriptions.length > 0 && (
                 <div>
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-lg">
-                      <Users className="w-6 h-6 text-red-600" />
+                  <div className="flex items-center gap-4 mb-6 pb-4 border-b-2 border-red-200 dark:border-red-900/50">
+                    <div className="p-4 bg-red-100 dark:bg-red-900/30 rounded-lg">
+                      <Users className="w-7 h-7 text-red-600" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-xl font-bold">Your Channels</h3>
-                      <p className="text-xs text-muted-foreground">Subscriptions you follow</p>
+                      <h3 className="text-2xl font-bold">Your Channels</h3>
+                      <p className="text-sm text-muted-foreground">Subscriptions and channels you follow</p>
                     </div>
-                    <Badge>{userData.subscriptions.length}</Badge>
+                    <Badge className="text-lg px-4 py-2">{userData.subscriptions.length}</Badge>
                   </div>
-                  <Card className="p-6 border-l-4 border-l-red-600 h-full">
-                    <div className="space-y-3 max-h-96 overflow-y-auto">
-                      {userData.subscriptions.slice(0, 8).map((channel: any, index: number) => (
-                        <div key={index} className="text-sm">
-                          <p className="font-medium truncate">{channel.title}</p>
-                        </div>
-                      ))}
-                      {userData.subscriptions.length > 8 && (
-                        <p className="text-xs text-muted-foreground pt-2">+{userData.subscriptions.length - 8} more</p>
-                      )}
-                    </div>
+                  <Card className="p-8 border-l-4 border-l-red-600">
+                    <FloatingChannels channels={userData.subscriptions} title="" />
                   </Card>
                 </div>
               )}
@@ -376,25 +357,43 @@ const Dashboard = () => {
               {/* Saved Videos Section */}
               {userData.saved_videos && userData.saved_videos.length > 0 && (
                 <div>
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                      <Video className="w-6 h-6 text-blue-600" />
+                  <div className="flex items-center gap-4 mb-6 pb-4 border-b-2 border-blue-200 dark:border-blue-900/50">
+                    <div className="p-4 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                      <Video className="w-7 h-7 text-blue-600" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-xl font-bold">Saved Videos</h3>
-                      <p className="text-xs text-muted-foreground">Your saved videos</p>
+                      <h3 className="text-2xl font-bold">Saved Videos</h3>
+                      <p className="text-sm text-muted-foreground">Your library of saved videos</p>
                     </div>
-                    <Badge>{userData.saved_videos.length}</Badge>
+                    <Badge className="text-lg px-4 py-2">{userData.saved_videos.length}</Badge>
                   </div>
-                  <Card className="p-6 border-l-4 border-l-blue-600 h-full">
-                    <div className="space-y-3 max-h-96 overflow-y-auto">
-                      {userData.saved_videos.slice(0, 8).map((video: any, index: number) => (
-                        <div key={index} className="text-sm">
-                          <p className="font-medium truncate">{video.title}</p>
-                        </div>
-                      ))}
-                      {userData.saved_videos.length > 8 && (
-                        <p className="text-xs text-muted-foreground pt-2">+{userData.saved_videos.length - 8} more</p>
+                  <Card className="p-8 border-l-4 border-l-blue-600">
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {userData.saved_videos
+                          .slice(0, expandedVideos ? undefined : 12)
+                          .map((video: any, index: number) => (
+                            <VideoCard key={index} title={video.title} thumbnailUrl={video.thumbnail_url} videoId={video.video_id} />
+                          ))}
+                      </div>
+                      {(userData.saved_videos?.length || 0) > 12 && (
+                        <Button
+                          onClick={() => setExpandedVideos(!expandedVideos)}
+                          variant="outline"
+                          className="w-full gap-2"
+                        >
+                          {expandedVideos ? (
+                            <>
+                              Show Less
+                              <ChevronDown className="w-4 h-4 transform rotate-180" />
+                            </>
+                          ) : (
+                            <>
+                              Show All {userData.saved_videos?.length} Videos
+                              <ChevronDown className="w-4 h-4" />
+                            </>
+                          )}
+                        </Button>
                       )}
                     </div>
                   </Card>
@@ -404,25 +403,43 @@ const Dashboard = () => {
               {/* Playlists Section */}
               {userData.playlists && userData.playlists.length > 0 && (
                 <div>
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                      <List className="w-6 h-6 text-green-600" />
+                  <div className="flex items-center gap-4 mb-6 pb-4 border-b-2 border-green-200 dark:border-green-900/50">
+                    <div className="p-4 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                      <List className="w-7 h-7 text-green-600" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-xl font-bold">Your Playlists</h3>
-                      <p className="text-xs text-muted-foreground">Created & saved</p>
+                      <h3 className="text-2xl font-bold">Your Playlists</h3>
+                      <p className="text-sm text-muted-foreground">All your created and saved playlists</p>
                     </div>
-                    <Badge>{userData.playlists.length}</Badge>
+                    <Badge className="text-lg px-4 py-2">{userData.playlists.length}</Badge>
                   </div>
-                  <Card className="p-6 border-l-4 border-l-green-600 h-full">
-                    <div className="space-y-3 max-h-96 overflow-y-auto">
-                      {userData.playlists.slice(0, 8).map((playlist: any, index: number) => (
-                        <div key={index} className="text-sm">
-                          <p className="font-medium truncate">{playlist.title}</p>
-                        </div>
-                      ))}
-                      {userData.playlists.length > 8 && (
-                        <p className="text-xs text-muted-foreground pt-2">+{userData.playlists.length - 8} more</p>
+                  <Card className="p-8 border-l-4 border-l-green-600">
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {userData.playlists
+                          .slice(0, expandedPlaylists ? undefined : 12)
+                          .map((playlist: any, index: number) => (
+                            <VideoCard key={index} title={playlist.title} thumbnailUrl={playlist.thumbnail_url} playlistId={playlist.playlist_id} />
+                          ))}
+                      </div>
+                      {(userData.playlists?.length || 0) > 12 && (
+                        <Button
+                          onClick={() => setExpandedPlaylists(!expandedPlaylists)}
+                          variant="outline"
+                          className="w-full gap-2"
+                        >
+                          {expandedPlaylists ? (
+                            <>
+                              Show Less
+                              <ChevronDown className="w-4 h-4 transform rotate-180" />
+                            </>
+                          ) : (
+                            <>
+                              Show All {userData.playlists?.length} Playlists
+                              <ChevronDown className="w-4 h-4" />
+                            </>
+                          )}
+                        </Button>
                       )}
                     </div>
                   </Card>
@@ -434,55 +451,52 @@ const Dashboard = () => {
                 const uniqueGenres = new Set([...(userData.subscription_genres || []), ...(userData.video_genres || [])]);
                 return uniqueGenres.size > 0 && (
                   <div>
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="p-3 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
-                        <Disc3 className="w-6 h-6 text-amber-600" />
+                    <div className="flex items-center gap-4 mb-6 pb-4 border-b-2 border-amber-200 dark:border-amber-900/50">
+                      <div className="p-4 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
+                        <Disc3 className="w-7 h-7 text-amber-600" />
                       </div>
                       <div className="flex-1">
-                        <h3 className="text-xl font-bold">Favorite Genres</h3>
-                        <p className="text-xs text-muted-foreground">Your taste</p>
+                        <h3 className="text-2xl font-bold">Favorite Genres</h3>
+                        <p className="text-sm text-muted-foreground">Your taste across your subscriptions and saved content</p>
                       </div>
-                      <Badge>{uniqueGenres.size}</Badge>
+                      <Badge className="text-lg px-4 py-2">{uniqueGenres.size}</Badge>
                     </div>
-                    <Card className="p-6 border-l-4 border-l-amber-600 h-full">
-                      <div className="flex flex-wrap gap-2 max-h-96 overflow-y-auto">
-                        {Array.from(uniqueGenres)
-                          .sort()
-                          .map((genre: any, index: number) => (
-                            <Badge key={index} variant="outline" className="capitalize text-xs">
-                              {String(genre).replace(/_/g, " ")}
-                            </Badge>
-                          ))}
+                    <Card className="p-8 border-l-4 border-l-amber-600">
+                      <div className="space-y-4">
+                        <div className="flex flex-wrap gap-3">
+                          {Array.from(uniqueGenres)
+                            .sort()
+                            .slice(0, expandedGenres ? undefined : 20)
+                            .map((genre: any, index: number) => (
+                              <Badge key={index} variant="outline" className="capitalize px-4 py-2 text-sm border-2 rounded-full">
+                                {String(genre).replace(/_/g, " ")}
+                              </Badge>
+                            ))}
+                        </div>
+                        {uniqueGenres.size > 20 && (
+                          <Button
+                            onClick={() => setExpandedGenres(!expandedGenres)}
+                            variant="outline"
+                            className="w-full gap-2"
+                          >
+                            {expandedGenres ? (
+                              <>
+                                Show Less
+                                <ChevronDown className="w-4 h-4 transform rotate-180" />
+                              </>
+                            ) : (
+                              <>
+                                Show All {uniqueGenres.size} Genres
+                                <ChevronDown className="w-4 h-4" />
+                              </>
+                            )}
+                          </Button>
+                        )}
                       </div>
                     </Card>
                   </div>
                 );
               })()}
-            </div>
-
-            <Separator className="my-12" />
-
-            {/* Full Width Sections for Detailed Content */}
-            <div className="space-y-12">
-              {/* Music Showcase - Full Width */}
-              {userData.music_listened && userData.music_listened.length > 0 && (
-                <div>
-                  <h3 className="text-2xl font-bold mb-6">🎵 Music Showcase</h3>
-                  <Card className="p-8 border-l-4 border-l-purple-600">
-                    <MusicShowcase musicTracks={userData.music_listened} />
-                  </Card>
-                </div>
-              )}
-
-              {/* Channels Grid - Full Width */}
-              {userData.subscriptions && userData.subscriptions.length > 0 && (
-                <div>
-                  <h3 className="text-2xl font-bold mb-6">👥 All Channels</h3>
-                  <Card className="p-8 border-l-4 border-l-red-600">
-                    <FloatingChannels channels={userData.subscriptions} title="" />
-                  </Card>
-                </div>
-              )}
             </div>
           </div>
         )}
