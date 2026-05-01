@@ -458,25 +458,28 @@ const Dashboard = () => {
                         </Badge>
                       ))}
                   </div>
-                  {(userData.subscription_genres?.length || 0) + (userData.video_genres?.length || 0) > 12 && (
-                    <Button
-                      onClick={() => setExpandedGenres(!expandedGenres)}
-                      variant="outline"
-                      className="mt-4 gap-2"
-                    >
-                      {expandedGenres ? (
-                        <>
-                          Show Less
-                          <ChevronDown className="w-4 h-4 transform rotate-180" />
-                        </>
-                      ) : (
-                        <>
-                          Show All {new Set([...(userData.subscription_genres || []), ...(userData.video_genres || [])]).size} Genres
-                          <ChevronDown className="w-4 h-4" />
-                        </>
-                      )}
-                    </Button>
-                  )}
+                  {(() => {
+                    const uniqueGenres = new Set([...(userData.subscription_genres || []), ...(userData.video_genres || [])]);
+                    return uniqueGenres.size > 12 && (
+                      <Button
+                        onClick={() => setExpandedGenres(!expandedGenres)}
+                        variant="outline"
+                        className="mt-4 gap-2"
+                      >
+                        {expandedGenres ? (
+                          <>
+                            Show Less
+                            <ChevronDown className="w-4 h-4 transform rotate-180" />
+                          </>
+                        ) : (
+                          <>
+                            Show All {uniqueGenres.size} Genres
+                            <ChevronDown className="w-4 h-4" />
+                          </>
+                        )}
+                      </Button>
+                    );
+                  })()}
                 </div>
               </div>
             </>
