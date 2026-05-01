@@ -28,7 +28,8 @@ from services.youtube import (
     fetch_saved_videos,
     determine_music_and_genres,
     fetch_playlists,
-    count_music_watch_times
+    count_music_watch_times,
+    execute_with_retry
 )
 from services.comparison import compare_interests_logic
 
@@ -1530,7 +1531,7 @@ async def debug_videos_only(google_id: str = Depends(verify_token)):
                 page_num += 1
                 logger.info(f"\n  PAGE {page_num}:")
                 try:
-                    response = request.execute()
+                    response = execute_with_retry(request)
                     logger.info(f"    ✅ Request executed successfully")
                     logger.info(f"    Response keys: {list(response.keys())}")
 
@@ -1580,7 +1581,7 @@ async def debug_videos_only(google_id: str = Depends(verify_token)):
             playlists_processed = 0
             while playlist_request:
                 try:
-                    playlist_response = playlist_request.execute()
+                    playlist_response = execute_with_retry(playlist_request)
                     playlists = playlist_response.get('items', [])
                     logger.info(f"\n  Batch: {len(playlists)} playlists")
 
@@ -1595,7 +1596,7 @@ async def debug_videos_only(google_id: str = Depends(verify_token)):
 
                         while item_request:
                             try:
-                                item_response = item_request.execute()
+                                item_response = execute_with_retry(item_request)
                                 items = item_response.get('items', [])
                                 logger.info(f"      → {len(items)} items in this page")
 
