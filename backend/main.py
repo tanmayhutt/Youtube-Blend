@@ -875,6 +875,16 @@ async def force_full_sync(google_id: str = Depends(verify_token)):
         subscription_genres = await loop.run_in_executor(None, fetch_subscription_genres, genres_client, subscriptions)
         playlists = await loop.run_in_executor(None, fetch_playlists, playlists_client)
 
+        if subscriptions_complete:
+            users.update_one(
+                {'google_id': google_id},
+                {'$set': {
+                    'last_complete_subscriptions': subscriptions,
+                    'last_complete_subscription_genres': subscription_genres,
+                    'last_complete_subscriptions_at': datetime.utcnow()
+                }}
+            )
+
         # Build user data
         user_data = {
             'subscriptions': subscriptions,
@@ -985,9 +995,9 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
         use_cached_subs = False
         cached_subscriptions = []
         cached_sub_genres = []
-        if not subscriptions_complete and doc and doc.get('cached_data'):
-            cached_subscriptions = doc.get('cached_data', {}).get('subscriptions', [])
-            cached_sub_genres = doc.get('cached_data', {}).get('subscription_genres', [])
+        if not subscriptions_complete and doc:
+            cached_subscriptions = doc.get('last_complete_subscriptions') or doc.get('cached_data', {}).get('subscriptions', [])
+            cached_sub_genres = doc.get('last_complete_subscription_genres') or doc.get('cached_data', {}).get('subscription_genres', [])
             if cached_subscriptions:
                 logger.warning(
                     "Subscriptions fetch incomplete; using cached subscriptions (%d) instead of partial (%d)",
@@ -996,8 +1006,8 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
                 )
                 subscriptions = cached_subscriptions
                 use_cached_subs = True
-        elif not subscriptions_complete:
-            logger.warning("Subscriptions fetch incomplete; no cached subscriptions available.")
+            else:
+                logger.warning("Subscriptions fetch incomplete; no cached subscriptions available.")
 
         if isinstance(saved_data, Exception):
             logger.error(f"❌ Error fetching saved videos: {saved_data}")
@@ -1031,6 +1041,16 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
             except Exception as e:
                 logger.error(f"❌ Error fetching subscription genres: {str(e)}")
                 subscription_genres = []
+
+        if subscriptions_complete:
+            users.update_one(
+                {'google_id': google_id},
+                {'$set': {
+                    'last_complete_subscriptions': subscriptions,
+                    'last_complete_subscription_genres': subscription_genres,
+                    'last_complete_subscriptions_at': datetime.utcnow()
+                }}
+            )
 
         # Fetch all playlists (with crash protection)
         try:
