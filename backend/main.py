@@ -923,14 +923,32 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
         logger.info(f"   - {len(subscriptions)} subscriptions")
         logger.info(f"   - {len(saved_data.get('saved_videos', []))} saved videos")
 
-        # Determine music and genres from saved videos
-        music_listened, video_genres = determine_music_and_genres(youtube, saved_data.get('video_ids', []))
+        # Determine music and genres from saved videos (with crash protection)
+        try:
+            music_listened, video_genres = await loop.run_in_executor(
+                None,
+                determine_music_and_genres,
+                youtube,
+                saved_data.get('video_ids', [])
+            )
+        except Exception as e:
+            logger.error(f"❌ Error determining music/genres: {str(e)}")
+            logger.exception("Music determination crashed")
+            music_listened, video_genres = [], []
 
-        # Fetch subscription genres in parallel
-        subscription_genres = await loop.run_in_executor(None, fetch_subscription_genres, youtube, subscriptions)
+        # Fetch subscription genres in parallel (with crash protection)
+        try:
+            subscription_genres = await loop.run_in_executor(None, fetch_subscription_genres, youtube, subscriptions)
+        except Exception as e:
+            logger.error(f"❌ Error fetching subscription genres: {str(e)}")
+            subscription_genres = []
 
-        # Fetch all playlists
-        playlists = await loop.run_in_executor(None, fetch_playlists, youtube)
+        # Fetch all playlists (with crash protection)
+        try:
+            playlists = await loop.run_in_executor(None, fetch_playlists, youtube)
+        except Exception as e:
+            logger.error(f"❌ Error fetching playlists: {str(e)}")
+            playlists = []
 
         # Build fresh user data from YouTube
         fresh_user_data = {
@@ -969,7 +987,27 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
     except HTTPException:
         raise
     except Exception as e:
-        logger.exception(f"Error syncing user data: {str(e)}")
+        logger.exception(f"CRITICAL ERROR in sync: {str(e)}")
+        # Try to return cached data as fallback
+        try:
+            doc = users.find_one({'google_id': google_id})
+            if doc and doc.get('cached_data'):
+                cached_data = doc['cached_data']
+                logger.info("💾 Sync crashed - returning cached data as fallback")
+                return {
+                    'success': True,
+                    'sync_type': 'CACHED',
+                    'subscriptions': cached_data.get('subscriptions', []),
+                    'subscription_genres': cached_data.get('subscription_genres', []),
+                    'saved_videos': cached_data.get('saved_videos', []),
+                    'music_listened': cached_data.get('music_listened', []),
+                    'video_genres': cached_data.get('video_genres', []),
+                    'playlists': cached_data.get('playlists', []),
+                    'message': '⚠️  Sync encountered an error. Returning cached data. Please try again later.',
+                    'warning': 'syncError'
+                }
+        except:
+            pass
         raise HTTPException(status_code=500, detail=f"Failed to sync YouTube data: {str(e)}")
 
 

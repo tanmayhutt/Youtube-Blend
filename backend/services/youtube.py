@@ -193,6 +193,7 @@ def determine_music_and_genres(youtube, video_ids: List[str]) -> Tuple[List[Dict
     """Identifies music videos and genres from video IDs."""
     music_listened = []
     video_genres = []
+    category_cache = {}  # Cache category ID -> name mappings to avoid repeated API calls
 
     logger.info(f"🎵 Starting music identification for {len(video_ids)} video IDs")
 
@@ -201,35 +202,81 @@ def determine_music_and_genres(youtube, video_ids: List[str]) -> Tuple[List[Dict
         return [], []
 
     try:
+        # First pass: collect all category IDs we need to fetch
+        all_category_ids = set()
+        videos_data = []
+
         for i in range(0, len(video_ids), 50):
             batch_ids = video_ids[i:i+50]
             logger.info(f"Processing batch {i//50 + 1}: {len(batch_ids)} videos")
 
-            # Include statistics to get viewCount for sorting
-            request = youtube.videos().list(part='snippet,statistics', id=','.join(batch_ids))
-            response = execute_with_retry(request)
+            try:
+                # Include statistics to get viewCount for sorting
+                request = youtube.videos().list(part='snippet,statistics', id=','.join(batch_ids))
+                response = execute_with_retry(request)
 
-            for video in response.get('items', []):
-                title = sanitize_string(video['snippet']['title'])
-                category_id = video['snippet'].get('categoryId')
-                is_music = category_id == '10' or any(keyword in title.lower() for keyword in ['song', 'music', 'album', 'track', 'playlist'])
+                for video in response.get('items', []):
+                    title = sanitize_string(video['snippet']['title'])
+                    category_id = video['snippet'].get('categoryId')
 
-                if is_music:
-                    # Get view count from statistics
-                    view_count = int(video.get('statistics', {}).get('viewCount', 0))
-                    music_listened.append({
+                    # Store video data for later processing
+                    videos_data.append({
                         'title': title,
                         'video_id': video['id'],
                         'thumbnail_url': video['snippet']['thumbnails'].get('medium', {}).get('url', ''),
-                        'view_count': view_count
+                        'view_count': int(video.get('statistics', {}).get('viewCount', 0)),
+                        'category_id': category_id
                     })
-                    logger.info(f"  ✅ Found music: {title} (category: {category_id})")
 
-                if category_id:
-                    category_request = youtube.videoCategories().list(part='snippet', id=category_id)
+                    # Collect category IDs to batch fetch
+                    if category_id:
+                        all_category_ids.add(category_id)
+            except Exception as e:
+                logger.error(f"❌ Error processing video batch: {str(e)}")
+                continue
+
+        # Second pass: batch fetch all category names at once
+        logger.info(f"Fetching {len(all_category_ids)} unique category names...")
+        if all_category_ids:
+            # Batch categories in groups of 50 (YouTube API limit)
+            category_ids_list = list(all_category_ids)
+            for i in range(0, len(category_ids_list), 50):
+                batch_category_ids = category_ids_list[i:i+50]
+                try:
+                    category_request = youtube.videoCategories().list(
+                        part='snippet',
+                        id=','.join(batch_category_ids),
+                        hl='en'
+                    )
                     category_response = execute_with_retry(category_request)
-                    genre = category_response['items'][0]['snippet']['title'] if category_response.get('items') else 'Unknown'
-                    video_genres.append(sanitize_string(genre))
+                    for cat in category_response.get('items', []):
+                        cat_id = cat['id']
+                        cat_name = sanitize_string(cat['snippet']['title'])
+                        category_cache[cat_id] = cat_name
+                        logger.info(f"  Cached category {cat_id} -> {cat_name}")
+                except Exception as e:
+                    logger.error(f"❌ Error fetching categories batch: {str(e)}")
+
+        # Third pass: process videos using cached category names
+        logger.info(f"Processing {len(videos_data)} videos with cached categories...")
+        for video in videos_data:
+            title = video['title']
+            category_id = video['category_id']
+            is_music = category_id == '10' or any(keyword in title.lower() for keyword in ['song', 'music', 'album', 'track', 'playlist'])
+
+            if is_music:
+                music_listened.append({
+                    'title': title,
+                    'video_id': video['video_id'],
+                    'thumbnail_url': video['thumbnail_url'],
+                    'view_count': video['view_count']
+                })
+                logger.info(f"  ✅ Found music: {title} (category: {category_id})")
+
+            # Add genre (use cached name or fallback to ID)
+            if category_id:
+                genre = category_cache.get(category_id, f'Category {category_id}')
+                video_genres.append(genre)
 
         logger.info(f"✅ Music identification complete: Found {len(music_listened)} music tracks from {len(video_ids)} videos")
     except Exception as e:
@@ -237,7 +284,7 @@ def determine_music_and_genres(youtube, video_ids: List[str]) -> Tuple[List[Dict
         logger.exception("Full traceback for music identification:")
 
     logger.info(f"🎵 determine_music_and_genres returning: {len(music_listened)} music, {len(set(video_genres))} genres")
-    return music_listened, video_genres
+    return music_listened, list(set(video_genres))
 
 
 def fetch_playlists(youtube):
