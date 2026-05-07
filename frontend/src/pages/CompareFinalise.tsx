@@ -27,6 +27,11 @@ const CompareFinalise = () => {
   const [comparisonMeta, setComparisonMeta] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [comparisonStatus, setComparisonStatus] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  const comparisonLink = id ? `${window.location.origin}/compare/join/${id}` : "";
 
   const formatSyncTime = (value?: string) => {
     if (!value) return "Unknown";
@@ -52,16 +57,33 @@ const CompareFinalise = () => {
     try {
       const url = forceRefresh ? `/compare/run/${id}?refresh=1` : `/compare/run/${id}`;
       const response = await authClient.get(url);
-      setComparisonData(response.data.results);
+      if (response.data?.results) {
+        setComparisonData(response.data.results);
+        setComparisonStatus("completed");
+        setStatusMessage(null);
+      } else if (response.data?.status) {
+        setComparisonData(null);
+        setComparisonStatus(response.data.status);
+        setStatusMessage(response.data.message || null);
+      }
       setComparisonMeta(response.data.meta);
       setError(null);
     } catch (err: any) {
-      setError(err.response?.data?.detail || "Failed to load comparison results");
-      toast({
-        title: "Error",
-        description: "Could not load comparison results",
-        variant: "destructive",
-      });
+      const detail = err.response?.data?.detail;
+      if (detail && detail.includes("Comparison is not ready")) {
+        setComparisonData(null);
+        setComparisonStatus("pending");
+        setStatusMessage(detail);
+        setError(null);
+      } else {
+        setError(detail || "Failed to load comparison results");
+        setComparisonStatus("error");
+        toast({
+          title: "Error",
+          description: "Could not load comparison results",
+          variant: "destructive",
+        });
+      }
     } finally {
       if (!forceRefresh) {
         setLoading(false);
@@ -87,6 +109,13 @@ const CompareFinalise = () => {
     } finally {
       setRefreshing(false);
     }
+  };
+
+  const handleCopyLink = () => {
+    if (!comparisonLink) return;
+    navigator.clipboard.writeText(comparisonLink);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2000);
   };
 
   useEffect(() => {
@@ -153,6 +182,34 @@ const CompareFinalise = () => {
           <div>
             <p className="text-lg font-medium text-foreground mb-2">Analyzing your YouTube libraries...</p>
             <p className="text-sm text-muted-foreground">This can take a few seconds as we compare your subscriptions, videos, and music taste across both accounts.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (comparisonStatus === "pending" && !comparisonData) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4 max-w-md">
+          <Youtube className="w-16 h-16 text-muted-foreground mx-auto" />
+          <h1 className="text-2xl font-bold">Waiting for the other user</h1>
+          <p className="text-muted-foreground">{statusMessage || "They need to finish Google login for this link."}</p>
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={comparisonLink}
+                readOnly
+                className="flex-1 px-3 py-2 rounded-lg bg-background border border-border text-xs"
+              />
+              <Button onClick={handleCopyLink} variant="outline" size="sm">
+                {copiedLink ? "Copied" : "Copy"}
+              </Button>
+            </div>
+            <Button onClick={() => runComparison()} size="sm">
+              Check again
+            </Button>
           </div>
         </div>
       </div>

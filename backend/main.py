@@ -2004,7 +2004,11 @@ async def get_comparison(comparison_id: str, refresh: bool = False, google_id: s
         return {'results': comparison.get('results'), 'meta': meta}
 
     if comparison.get('status') != 'ready':
-        raise HTTPException(status_code=400, detail="Comparison is not ready. Both users must complete login.")
+        return {
+            'status': comparison.get('status', 'pending'),
+            'message': 'Comparison is not ready. Both users must complete login.',
+            'meta': meta
+        }
 
     user1_data = user1_cached or comparison.get('user1_data')
     user2_data = user2_cached or comparison.get('user2_data')
