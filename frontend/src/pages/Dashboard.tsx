@@ -24,6 +24,7 @@ const Dashboard = () => {
   const [expandedGenres, setExpandedGenres] = useState(false);
   const [expandedVideos, setExpandedVideos] = useState(false);
   const [expandedPlaylists, setExpandedPlaylists] = useState(false);
+  const [activeSection, setActiveSection] = useState<string>("music");
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -133,6 +134,23 @@ const Dashboard = () => {
     fetchData();
   }, [navigate, toast]);
 
+  useEffect(() => {
+    if (!userData) return;
+
+    const sections: string[] = [];
+    if (userData.music_listened?.length) sections.push("music");
+    if (userData.subscriptions?.length) sections.push("channels");
+    if (userData.saved_videos?.length) sections.push("videos");
+    if (userData.playlists?.length) sections.push("playlists");
+
+    const uniqueGenres = new Set([...(userData.subscription_genres || []), ...(userData.video_genres || [])]);
+    if (uniqueGenres.size > 0) sections.push("genres");
+
+    if (!sections.includes(activeSection)) {
+      setActiveSection(sections[0] || "music");
+    }
+  }, [activeSection, userData]);
+
   const handleGenerateLink = async () => {
     setGeneratingLink(true);
     try {
@@ -173,6 +191,46 @@ const Dashboard = () => {
       description: "You have been successfully logged out",
     });
   };
+
+  const uniqueGenres = new Set([...(userData?.subscription_genres || []), ...(userData?.video_genres || [])]);
+
+  const navSections = [
+    {
+      key: "music",
+      label: "Music",
+      count: userData?.music_listened?.length || 0,
+      icon: Music,
+      enabled: (userData?.music_listened?.length || 0) > 0,
+    },
+    {
+      key: "channels",
+      label: "Channels",
+      count: userData?.subscriptions?.length || 0,
+      icon: Users,
+      enabled: (userData?.subscriptions?.length || 0) > 0,
+    },
+    {
+      key: "videos",
+      label: "Videos",
+      count: userData?.saved_videos?.length || 0,
+      icon: Video,
+      enabled: (userData?.saved_videos?.length || 0) > 0,
+    },
+    {
+      key: "playlists",
+      label: "Playlists",
+      count: userData?.playlists?.length || 0,
+      icon: List,
+      enabled: (userData?.playlists?.length || 0) > 0,
+    },
+    {
+      key: "genres",
+      label: "Genres",
+      count: uniqueGenres.size,
+      icon: Disc3,
+      enabled: uniqueGenres.size > 0,
+    },
+  ].filter((section) => section.enabled);
 
   if (loading) {
     return (
@@ -326,9 +384,34 @@ const Dashboard = () => {
               Your YouTube Universe
             </h2>
 
-            <div className="space-y-8">
+            <div className="mb-8">
+              <div className="flex gap-2 overflow-x-auto pb-3 border-b border-border/60">
+                {navSections.map((section) => {
+                  const Icon = section.icon;
+                  const isActive = activeSection === section.key;
+                  return (
+                    <Button
+                      key={section.key}
+                      variant={isActive ? "default" : "outline"}
+                      onClick={() => setActiveSection(section.key)}
+                      className="gap-2 whitespace-nowrap"
+                      aria-current={isActive ? "page" : undefined}
+                    >
+                      <Icon className="w-4 h-4" />
+                      {section.label}
+                      <Badge variant={isActive ? "secondary" : "outline"} className="ml-1">
+                        {section.count}
+                      </Badge>
+                    </Button>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">Switch sections here instead of scrolling.</p>
+            </div>
+
+            <div>
               {/* Music Section */}
-              {userData.music_listened && userData.music_listened.length > 0 && (
+              {activeSection === "music" && userData.music_listened && userData.music_listened.length > 0 && (
                 <div>
                   <div className="flex items-center gap-4 mb-6 pb-4 border-b-2 border-purple-200 dark:border-purple-900/50">
                     <div className="p-4 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
@@ -347,7 +430,7 @@ const Dashboard = () => {
               )}
 
               {/* Channels Section */}
-              {userData.subscriptions && userData.subscriptions.length > 0 && (
+              {activeSection === "channels" && userData.subscriptions && userData.subscriptions.length > 0 && (
                 <div>
                   <div className="flex items-center gap-4 mb-6 pb-4 border-b-2 border-red-200 dark:border-red-900/50">
                     <div className="p-4 bg-red-100 dark:bg-red-900/30 rounded-lg">
@@ -366,7 +449,7 @@ const Dashboard = () => {
               )}
 
               {/* Saved Videos Section */}
-              {userData.saved_videos && userData.saved_videos.length > 0 && (
+              {activeSection === "videos" && userData.saved_videos && userData.saved_videos.length > 0 && (
                 <div>
                   <div className="flex items-center gap-4 mb-6 pb-4 border-b-2 border-blue-200 dark:border-blue-900/50">
                     <div className="p-4 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
@@ -412,7 +495,7 @@ const Dashboard = () => {
               )}
 
               {/* Playlists Section */}
-              {userData.playlists && userData.playlists.length > 0 && (
+              {activeSection === "playlists" && userData.playlists && userData.playlists.length > 0 && (
                 <div>
                   <div className="flex items-center gap-4 mb-6 pb-4 border-b-2 border-green-200 dark:border-green-900/50">
                     <div className="p-4 bg-green-100 dark:bg-green-900/30 rounded-lg">
@@ -458,56 +541,53 @@ const Dashboard = () => {
               )}
 
               {/* Genres Section */}
-              {(() => {
-                const uniqueGenres = new Set([...(userData.subscription_genres || []), ...(userData.video_genres || [])]);
-                return uniqueGenres.size > 0 && (
-                  <div>
-                    <div className="flex items-center gap-4 mb-6 pb-4 border-b-2 border-amber-200 dark:border-amber-900/50">
-                      <div className="p-4 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
-                        <Disc3 className="w-7 h-7 text-amber-600" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="text-2xl font-bold">Favorite Genres</h3>
-                        <p className="text-sm text-muted-foreground">Your taste across your subscriptions and saved content</p>
-                      </div>
-                      <Badge className="text-lg px-4 py-2">{uniqueGenres.size}</Badge>
+              {activeSection === "genres" && uniqueGenres.size > 0 && (
+                <div>
+                  <div className="flex items-center gap-4 mb-6 pb-4 border-b-2 border-amber-200 dark:border-amber-900/50">
+                    <div className="p-4 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
+                      <Disc3 className="w-7 h-7 text-amber-600" />
                     </div>
-                    <Card className="p-8 border-l-4 border-l-amber-600">
-                      <div className="space-y-4">
-                        <div className="flex flex-wrap gap-3">
-                          {Array.from(uniqueGenres)
-                            .sort()
-                            .slice(0, expandedGenres ? undefined : 20)
-                            .map((genre: any, index: number) => (
-                              <Badge key={index} variant="outline" className="capitalize px-4 py-2 text-sm border-2 rounded-full">
-                                {String(genre).replace(/_/g, " ")}
-                              </Badge>
-                            ))}
-                        </div>
-                        {uniqueGenres.size > 20 && (
-                          <Button
-                            onClick={() => setExpandedGenres(!expandedGenres)}
-                            variant="outline"
-                            className="w-full gap-2"
-                          >
-                            {expandedGenres ? (
-                              <>
-                                Show Less
-                                <ChevronDown className="w-4 h-4 transform rotate-180" />
-                              </>
-                            ) : (
-                              <>
-                                Show All {uniqueGenres.size} Genres
-                                <ChevronDown className="w-4 h-4" />
-                              </>
-                            )}
-                          </Button>
-                        )}
-                      </div>
-                    </Card>
+                    <div className="flex-1">
+                      <h3 className="text-2xl font-bold">Favorite Genres</h3>
+                      <p className="text-sm text-muted-foreground">Your taste across your subscriptions and saved content</p>
+                    </div>
+                    <Badge className="text-lg px-4 py-2">{uniqueGenres.size}</Badge>
                   </div>
-                );
-              })()}
+                  <Card className="p-8 border-l-4 border-l-amber-600">
+                    <div className="space-y-4">
+                      <div className="flex flex-wrap gap-3">
+                        {Array.from(uniqueGenres)
+                          .sort()
+                          .slice(0, expandedGenres ? undefined : 20)
+                          .map((genre: any, index: number) => (
+                            <Badge key={index} variant="outline" className="capitalize px-4 py-2 text-sm border-2 rounded-full">
+                              {String(genre).replace(/_/g, " ")}
+                            </Badge>
+                          ))}
+                      </div>
+                      {uniqueGenres.size > 20 && (
+                        <Button
+                          onClick={() => setExpandedGenres(!expandedGenres)}
+                          variant="outline"
+                          className="w-full gap-2"
+                        >
+                          {expandedGenres ? (
+                            <>
+                              Show Less
+                              <ChevronDown className="w-4 h-4 transform rotate-180" />
+                            </>
+                          ) : (
+                            <>
+                              Show All {uniqueGenres.size} Genres
+                              <ChevronDown className="w-4 h-4" />
+                            </>
+                          )}
+                        </Button>
+                      )}
+                    </div>
+                  </Card>
+                </div>
+              )}
             </div>
           </div>
         )}
