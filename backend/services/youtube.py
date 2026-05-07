@@ -8,6 +8,7 @@ from typing import List, Dict, Tuple
 import logging
 import time
 import ssl
+import gc  # Garbage collection for memory management
 
 logger = logging.getLogger(__name__)
 
@@ -49,12 +50,25 @@ def fetch_subscriptions(youtube):
             batch_num += 1
             response = execute_with_retry(request)
             batch_size = len(response.get('items', []))
-            subscriptions.extend([{
-                'title': sanitize_string(sub['snippet']['title']),
-                'channel_id': sub['snippet']['resourceId']['channelId'],
-                'logo_url': sub['snippet']['thumbnails'].get('medium', {}).get('url', '')
-            } for sub in response.get('items', [])])
-            logger.info(f"  Batch {batch_num}: {batch_size} subscriptions (total: {len(subscriptions)})")
+
+            # Process subscriptions with defensive checks
+            for sub in response.get('items', []):
+                try:
+                    # Ensure required fields exist before accessing
+                    if 'snippet' not in sub or 'resourceId' not in sub['snippet']:
+                        logger.warning(f"⚠️  Skipping subscription missing resourceId: {sub.get('id', 'unknown')}")
+                        continue
+
+                    subscriptions.append({
+                        'title': sanitize_string(sub['snippet']['title']),
+                        'channel_id': sub['snippet']['resourceId']['channelId'],
+                        'logo_url': sub['snippet']['thumbnails'].get('medium', {}).get('url', '')
+                    })
+                except (KeyError, TypeError) as e:
+                    logger.warning(f"⚠️  Error processing subscription: {str(e)}, skipping")
+                    continue
+
+            logger.info(f"  Batch {batch_num}: {batch_size} items processed (total: {len(subscriptions)})")
             request = youtube.subscriptions().list_next(request, response)
         logger.info(f"✅ fetch_subscriptions complete: {len(subscriptions)} total")
     except Exception as e:
@@ -231,6 +245,10 @@ def determine_music_and_genres(youtube, video_ids: List[str]) -> Tuple[List[Dict
                     # Collect category IDs to batch fetch
                     if category_id:
                         all_category_ids.add(category_id)
+
+                # Clean up response to free memory
+                del response
+                gc.collect()  # Force garbage collection after each batch
             except Exception as e:
                 logger.error(f"❌ Error processing video batch: {str(e)}")
                 continue
@@ -254,6 +272,10 @@ def determine_music_and_genres(youtube, video_ids: List[str]) -> Tuple[List[Dict
                         cat_name = sanitize_string(cat['snippet']['title'])
                         category_cache[cat_id] = cat_name
                         logger.info(f"  Cached category {cat_id} -> {cat_name}")
+
+                    # Clean up
+                    del category_response
+                    gc.collect()
                 except Exception as e:
                     logger.error(f"❌ Error fetching categories batch: {str(e)}")
 
@@ -282,6 +304,9 @@ def determine_music_and_genres(youtube, video_ids: List[str]) -> Tuple[List[Dict
     except Exception as e:
         logger.error(f"❌ Error determining music/genres: {str(e)}")
         logger.exception("Full traceback for music identification:")
+    finally:
+        # Final cleanup
+        gc.collect()
 
     logger.info(f"🎵 determine_music_and_genres returning: {len(music_listened)} music, {len(set(video_genres))} genres")
     return music_listened, list(set(video_genres))
