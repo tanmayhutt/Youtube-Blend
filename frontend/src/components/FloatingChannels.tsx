@@ -1,18 +1,27 @@
+import { useState } from "react";
 import { ChannelCard } from "./ChannelCard";
+import { Button } from "@/components/ui/button";
 
 interface FloatingChannelsProps {
   channels: any[];
   title: string;
 }
 
+const DEFAULT_VISIBLE = 15;
+
 export const FloatingChannels = ({ channels, title }: FloatingChannelsProps) => {
+  const [expanded, setExpanded] = useState(false);
+
   if (channels.length === 0) {
     return null;
   }
 
+  const visibleChannels = expanded ? channels : channels.slice(0, DEFAULT_VISIBLE);
+  const hiddenCount = Math.max(channels.length - visibleChannels.length, 0);
+
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold text-foreground">{title}</h3>
+      {title ? <h3 className="text-lg font-semibold text-foreground">{title}</h3> : null}
       <style>{`
         @keyframes fadeInScale {
           from { opacity: 0; transform: scale(0.95); }
@@ -23,7 +32,7 @@ export const FloatingChannels = ({ channels, title }: FloatingChannelsProps) => 
         }
       `}</style>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-        {channels.map((channel: any, index: number) => (
+        {visibleChannels.map((channel: any, index: number) => (
           <div
             key={index}
             className="channel-item transition-all duration-300 hover:scale-105 hover:shadow-lg"
@@ -35,8 +44,14 @@ export const FloatingChannels = ({ channels, title }: FloatingChannelsProps) => 
           </div>
         ))}
       </div>
-      {channels.length > 15 && (
-        <p className="text-xs text-muted-foreground text-center pt-2">+{channels.length - 15} more channels</p>
+      {channels.length > DEFAULT_VISIBLE && (
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={() => setExpanded(!expanded)}
+        >
+          {expanded ? "Show fewer channels" : `Show ${hiddenCount} more channels`}
+        </Button>
       )}
     </div>
   );

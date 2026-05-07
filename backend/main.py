@@ -519,10 +519,16 @@ async def callback(code: str, state: str):
             client_secret=os.getenv('GOOGLE_CLIENT_SECRET'),
             scopes=SCOPES,
         )
+        profile = {
+            "email": userinfo.get("email"),
+            "name": userinfo.get("name"),
+            "picture": userinfo.get("picture")
+        }
+
         # Store token JSON under `token_json` for consistency with `auth_setup.py`
         users.update_one(
             {"google_id": google_id},
-            {"$set": {"token_json": cred.to_json(), "updated_at": datetime.utcnow()}},
+            {"$set": {"token_json": cred.to_json(), "profile": profile, "updated_at": datetime.utcnow()}},
             upsert=True
         )
 
@@ -761,7 +767,9 @@ async def get_my_data(google_id: str = Depends(verify_token)):
                 'video_genres': cached_data.get('video_genres', []),
                 'playlists': cached_data.get('playlists', []),
                 'cached': True,
-                'last_synced_at': doc.get('last_full_sync')
+                'last_synced_at': doc.get('last_full_sync'),
+                'profile': doc.get('profile', {}),
+                'user_id': google_id
             }
 
         # No cached data yet
@@ -773,7 +781,9 @@ async def get_my_data(google_id: str = Depends(verify_token)):
             'video_genres': [],
             'playlists': [],
             'cached': False,
-            'message': 'No data cached yet. Call /data/sync to fetch your YouTube data.'
+            'message': 'No data cached yet. Call /data/sync to fetch your YouTube data.',
+            'profile': doc.get('profile', {}) if doc else {},
+            'user_id': google_id
         }
     except Exception as e:
         logger.exception("Error getting cached data")

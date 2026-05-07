@@ -24,7 +24,9 @@ const Dashboard = () => {
   const [expandedGenres, setExpandedGenres] = useState(false);
   const [expandedVideos, setExpandedVideos] = useState(false);
   const [expandedPlaylists, setExpandedPlaylists] = useState(false);
-  const [activeSection, setActiveSection] = useState<string>("music");
+  const [activeSection, setActiveSection] = useState<string>("channels");
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -103,6 +105,8 @@ const Dashboard = () => {
       try {
         const response = await authClient.get("/data/me");
         console.log("✅ Data response received", { cached: response.data.cached });
+        setUserProfile(response.data.profile || null);
+        setUserId(response.data.user_id || null);
 
         // If no cached data, immediately trigger full sync
         if (!response.data.cached) {
@@ -138,8 +142,8 @@ const Dashboard = () => {
     if (!userData) return;
 
     const sections: string[] = [];
-    if (userData.music_listened?.length) sections.push("music");
     if (userData.subscriptions?.length) sections.push("channels");
+    if (userData.music_listened?.length) sections.push("music");
     if (userData.saved_videos?.length) sections.push("videos");
     if (userData.playlists?.length) sections.push("playlists");
 
@@ -147,7 +151,7 @@ const Dashboard = () => {
     if (uniqueGenres.size > 0) sections.push("genres");
 
     if (!sections.includes(activeSection)) {
-      setActiveSection(sections[0] || "music");
+      setActiveSection(sections[0] || "channels");
     }
   }, [activeSection, userData]);
 
@@ -193,21 +197,24 @@ const Dashboard = () => {
   };
 
   const uniqueGenres = new Set([...(userData?.subscription_genres || []), ...(userData?.video_genres || [])]);
+  const profileName = userProfile?.name || userProfile?.email || (userId ? `User ${userId.slice(-6)}` : "Unknown user");
+  const profileEmail = userProfile?.name && userProfile?.email ? userProfile.email : null;
+  const profileInitial = profileName ? profileName.charAt(0).toUpperCase() : "U";
 
   const navSections = [
-    {
-      key: "music",
-      label: "Music",
-      count: userData?.music_listened?.length || 0,
-      icon: Music,
-      enabled: (userData?.music_listened?.length || 0) > 0,
-    },
     {
       key: "channels",
       label: "Channels",
       count: userData?.subscriptions?.length || 0,
       icon: Users,
       enabled: (userData?.subscriptions?.length || 0) > 0,
+    },
+    {
+      key: "music",
+      label: "Music",
+      count: userData?.music_listened?.length || 0,
+      icon: Music,
+      enabled: (userData?.music_listened?.length || 0) > 0,
     },
     {
       key: "videos",
@@ -268,8 +275,29 @@ const Dashboard = () => {
         {/* Action Card */}
         <Card className="mb-12 p-8 border-border/50">
           <div className="text-center space-y-6">
-            <div className="space-y-2">
+            <div className="space-y-3">
               <h2 className="text-3xl font-bold text-foreground">Your YouTube Profile</h2>
+              <div className="flex items-center justify-center gap-3">
+                {userProfile?.picture ? (
+                  <img
+                    src={userProfile.picture}
+                    alt={profileName}
+                    className="w-10 h-10 rounded-full object-cover border border-border"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-muted text-muted-foreground text-sm font-semibold flex items-center justify-center">
+                    {profileInitial}
+                  </div>
+                )}
+                <div className="text-left">
+                  <p className="text-xs text-muted-foreground">Signed in as</p>
+                  <p className="text-sm font-medium text-foreground">{profileName}</p>
+                  {profileEmail && (
+                    <p className="text-xs text-muted-foreground">{profileEmail}</p>
+                  )}
+                </div>
+              </div>
               <p className="text-sm text-muted-foreground">Last synced: {userData?.last_synced_at ? new Date(userData.last_synced_at).toLocaleDateString() : 'Never'}</p>
             </div>
 
