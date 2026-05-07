@@ -981,8 +981,24 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
         if isinstance(subscriptions, Exception):
             logger.error(f"❌ Error fetching subscriptions: {subscriptions}")
             subscriptions = []
-        if not subscriptions_complete:
-            logger.warning("Subscriptions fetch incomplete during force full sync; results may be partial.")
+
+        use_cached_subs = False
+        cached_subscriptions = []
+        cached_sub_genres = []
+        if not subscriptions_complete and doc and doc.get('cached_data'):
+            cached_subscriptions = doc.get('cached_data', {}).get('subscriptions', [])
+            cached_sub_genres = doc.get('cached_data', {}).get('subscription_genres', [])
+            if cached_subscriptions:
+                logger.warning(
+                    "Subscriptions fetch incomplete; using cached subscriptions (%d) instead of partial (%d)",
+                    len(cached_subscriptions),
+                    len(subscriptions)
+                )
+                subscriptions = cached_subscriptions
+                use_cached_subs = True
+        elif not subscriptions_complete:
+            logger.warning("Subscriptions fetch incomplete; no cached subscriptions available.")
+
         if isinstance(saved_data, Exception):
             logger.error(f"❌ Error fetching saved videos: {saved_data}")
             saved_data = {'video_ids': [], 'saved_videos': []}
