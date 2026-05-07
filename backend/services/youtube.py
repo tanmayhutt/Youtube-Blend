@@ -37,7 +37,7 @@ def sanitize_string(s: str) -> str:
 
 def get_youtube_service(creds: Credentials):
     """Creates a YouTube API client from credentials."""
-    return build('youtube', 'v3', credentials=creds)
+    return build('youtube', 'v3', credentials=creds, cache_discovery=False)
 
 def fetch_subscriptions(youtube):
     """Fetches user's subscriptions."""

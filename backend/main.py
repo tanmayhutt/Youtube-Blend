@@ -785,14 +785,15 @@ async def force_full_sync(google_id: str = Depends(verify_token)):
         if not creds:
             raise HTTPException(status_code=401, detail="Invalid or expired credentials")
 
-        youtube = get_youtube_service(creds)
         loop = asyncio.get_event_loop()
 
         # Fetch ALL YouTube data in parallel
         logger.info("⏳ Fetching subscriptions + saved videos...")
+        subscriptions_client = get_youtube_service(creds)
+        saved_videos_client = get_youtube_service(creds)
         subscriptions, saved_data = await asyncio.gather(
-            loop.run_in_executor(None, fetch_subscriptions, youtube),
-            loop.run_in_executor(None, fetch_saved_videos, youtube),
+            loop.run_in_executor(None, fetch_subscriptions, subscriptions_client),
+            loop.run_in_executor(None, fetch_saved_videos, saved_videos_client),
             return_exceptions=True
         )
 
@@ -811,12 +812,15 @@ async def force_full_sync(google_id: str = Depends(verify_token)):
 
         # Determine music from saved videos
         logger.info("⏳ Identifying music...")
-        music_listened, video_genres = determine_music_and_genres(youtube, saved_data.get('video_ids', []))
+        music_client = get_youtube_service(creds)
+        music_listened, video_genres = determine_music_and_genres(music_client, saved_data.get('video_ids', []))
         logger.info(f"🎵 Found {len(music_listened)} music tracks")
 
         # Fetch genres
-        subscription_genres = await loop.run_in_executor(None, fetch_subscription_genres, youtube, subscriptions)
-        playlists = await loop.run_in_executor(None, fetch_playlists, youtube)
+        genres_client = get_youtube_service(creds)
+        playlists_client = get_youtube_service(creds)
+        subscription_genres = await loop.run_in_executor(None, fetch_subscription_genres, genres_client, subscriptions)
+        playlists = await loop.run_in_executor(None, fetch_playlists, playlists_client)
 
         # Build user data
         user_data = {
@@ -869,7 +873,6 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
         if not creds:
             raise HTTPException(status_code=401, detail="Invalid or expired credentials")
 
-        youtube = get_youtube_service(creds)
         doc = users.find_one({'google_id': google_id})
         is_first_sync = doc is None or doc.get('cached_data') is None
 
@@ -879,9 +882,11 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
         loop = asyncio.get_event_loop()
 
         logger.info("⏳ Fetching fresh data from YouTube...")
+        subscriptions_client = get_youtube_service(creds)
+        saved_videos_client = get_youtube_service(creds)
         subscriptions, saved_data = await asyncio.gather(
-            loop.run_in_executor(None, fetch_subscriptions, youtube),
-            loop.run_in_executor(None, fetch_saved_videos, youtube),
+            loop.run_in_executor(None, fetch_subscriptions, subscriptions_client),
+            loop.run_in_executor(None, fetch_saved_videos, saved_videos_client),
             return_exceptions=True
         )
 
@@ -925,10 +930,11 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
 
         # Determine music and genres from saved videos (with crash protection)
         try:
+            music_client = get_youtube_service(creds)
             music_listened, video_genres = await loop.run_in_executor(
                 None,
                 determine_music_and_genres,
-                youtube,
+                music_client,
                 saved_data.get('video_ids', [])
             )
         except Exception as e:
@@ -938,14 +944,16 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
 
         # Fetch subscription genres in parallel (with crash protection)
         try:
-            subscription_genres = await loop.run_in_executor(None, fetch_subscription_genres, youtube, subscriptions)
+            genres_client = get_youtube_service(creds)
+            subscription_genres = await loop.run_in_executor(None, fetch_subscription_genres, genres_client, subscriptions)
         except Exception as e:
             logger.error(f"❌ Error fetching subscription genres: {str(e)}")
             subscription_genres = []
 
         # Fetch all playlists (with crash protection)
         try:
-            playlists = await loop.run_in_executor(None, fetch_playlists, youtube)
+            playlists_client = get_youtube_service(creds)
+            playlists = await loop.run_in_executor(None, fetch_playlists, playlists_client)
         except Exception as e:
             logger.error(f"❌ Error fetching playlists: {str(e)}")
             playlists = []
