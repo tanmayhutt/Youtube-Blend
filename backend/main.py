@@ -821,16 +821,39 @@ async def force_full_sync(google_id: str = Depends(verify_token)):
         logger.info("⏳ Fetching subscriptions + saved videos...")
         subscriptions_client = get_youtube_service(creds)
         saved_videos_client = get_youtube_service(creds)
-        subscriptions, saved_data = await asyncio.gather(
-            loop.run_in_executor(None, fetch_subscriptions, subscriptions_client),
+        subscriptions_result, saved_data = await asyncio.gather(
+            loop.run_in_executor(None, fetch_subscriptions, subscriptions_client, True),
             loop.run_in_executor(None, fetch_saved_videos, saved_videos_client),
             return_exceptions=True
         )
+
+        subscriptions_complete = True
+        if isinstance(subscriptions_result, Exception):
+            subscriptions = subscriptions_result
+        elif isinstance(subscriptions_result, tuple):
+            subscriptions, subscriptions_complete = subscriptions_result
+        else:
+            subscriptions = subscriptions_result
 
         # Handle exceptions
         if isinstance(subscriptions, Exception):
             logger.error(f"❌ Error fetching subscriptions: {subscriptions}")
             subscriptions = []
+
+        use_cached_subs = False
+        cached_subscriptions = []
+        cached_sub_genres = []
+        if not subscriptions_complete and doc and doc.get('cached_data'):
+            cached_subscriptions = doc.get('cached_data', {}).get('subscriptions', [])
+            cached_sub_genres = doc.get('cached_data', {}).get('subscription_genres', [])
+            if cached_subscriptions:
+                logger.warning(
+                    "Subscriptions fetch incomplete; using cached subscriptions (%d) instead of partial (%d)",
+                    len(cached_subscriptions),
+                    len(subscriptions)
+                )
+                subscriptions = cached_subscriptions
+                use_cached_subs = True
         if isinstance(saved_data, Exception):
             logger.error(f"❌ Error fetching saved videos: {saved_data}")
             saved_data = {'video_ids': [], 'saved_videos': []}
@@ -914,11 +937,19 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
         logger.info("⏳ Fetching fresh data from YouTube...")
         subscriptions_client = get_youtube_service(creds)
         saved_videos_client = get_youtube_service(creds)
-        subscriptions, saved_data = await asyncio.gather(
-            loop.run_in_executor(None, fetch_subscriptions, subscriptions_client),
+        subscriptions_result, saved_data = await asyncio.gather(
+            loop.run_in_executor(None, fetch_subscriptions, subscriptions_client, True),
             loop.run_in_executor(None, fetch_saved_videos, saved_videos_client),
             return_exceptions=True
         )
+
+        subscriptions_complete = True
+        if isinstance(subscriptions_result, Exception):
+            subscriptions = subscriptions_result
+        elif isinstance(subscriptions_result, tuple):
+            subscriptions, subscriptions_complete = subscriptions_result
+        else:
+            subscriptions = subscriptions_result
 
         # Check for quota exceeded errors
         quota_exceeded = False
@@ -950,6 +981,8 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
         if isinstance(subscriptions, Exception):
             logger.error(f"❌ Error fetching subscriptions: {subscriptions}")
             subscriptions = []
+        if not subscriptions_complete:
+            logger.warning("Subscriptions fetch incomplete during force full sync; results may be partial.")
         if isinstance(saved_data, Exception):
             logger.error(f"❌ Error fetching saved videos: {saved_data}")
             saved_data = {'video_ids': [], 'saved_videos': []}
@@ -973,12 +1006,15 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
             music_listened, video_genres = [], []
 
         # Fetch subscription genres in parallel (with crash protection)
-        try:
-            genres_client = get_youtube_service(creds)
-            subscription_genres = await loop.run_in_executor(None, fetch_subscription_genres, genres_client, subscriptions)
-        except Exception as e:
-            logger.error(f"❌ Error fetching subscription genres: {str(e)}")
-            subscription_genres = []
+        if use_cached_subs:
+            subscription_genres = cached_sub_genres
+        else:
+            try:
+                genres_client = get_youtube_service(creds)
+                subscription_genres = await loop.run_in_executor(None, fetch_subscription_genres, genres_client, subscriptions)
+            except Exception as e:
+                logger.error(f"❌ Error fetching subscription genres: {str(e)}")
+                subscription_genres = []
 
         # Fetch all playlists (with crash protection)
         try:

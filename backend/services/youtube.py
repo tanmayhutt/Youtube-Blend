@@ -39,16 +39,24 @@ def get_youtube_service(creds: Credentials):
     """Creates a YouTube API client from credentials."""
     return build('youtube', 'v3', credentials=creds, cache_discovery=False)
 
-def fetch_subscriptions(youtube):
-    """Fetches user's subscriptions."""
+def fetch_subscriptions(youtube, return_status: bool = False):
+    """Fetches user's subscriptions. Optionally returns completion status."""
     subscriptions = []
+    complete = True
     try:
         logger.info("👥 Starting fetch_subscriptions...")
         request = youtube.subscriptions().list(part='snippet', mine=True, maxResults=50)
         batch_num = 0
         while request:
             batch_num += 1
-            response = execute_with_retry(request)
+            try:
+                response = execute_with_retry(request)
+            except Exception as e:
+                complete = False
+                logger.error(f"❌ Error fetching subscriptions page: {str(e)}")
+                logger.exception("Full traceback for subscriptions page:")
+                break
+
             batch_size = len(response.get('items', []))
 
             # Process subscriptions with defensive checks
@@ -72,8 +80,12 @@ def fetch_subscriptions(youtube):
             request = youtube.subscriptions().list_next(request, response)
         logger.info(f"✅ fetch_subscriptions complete: {len(subscriptions)} total")
     except Exception as e:
+        complete = False
         logger.error(f"❌ Error fetching subscriptions: {str(e)}")
         logger.exception("Full traceback for subscriptions:")
+
+    if return_status:
+        return subscriptions, complete
     return subscriptions
 
 def fetch_subscription_genres(youtube, subscriptions_or_channel_ids):
