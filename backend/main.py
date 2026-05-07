@@ -983,6 +983,7 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
                 'music_listened': cached_data.get('music_listened', []),
                 'video_genres': cached_data.get('video_genres', []),
                 'playlists': cached_data.get('playlists', []),
+                'last_synced_at': doc.get('last_full_sync'),
                 'message': '⚠️  API quota exceeded. Returning cached data. Please try again later.',
                 'warning': 'quotaExceeded'
             }
@@ -1075,7 +1076,8 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
         cache_user_data(google_id, fresh_user_data)
 
         # Update sync timestamp
-        users.update_one({'google_id': google_id}, {'$set': {'last_full_sync': datetime.utcnow()}})
+        sync_time = datetime.utcnow()
+        users.update_one({'google_id': google_id}, {'$set': {'last_full_sync': sync_time}})
 
         logger.info(f"✅ SYNC COMPLETE:")
         logger.info(f"   📊 {len(subscriptions)} channels")
@@ -1092,6 +1094,7 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
             'music_listened': music_listened,
             'video_genres': video_genres,
             'playlists': playlists,
+            'last_synced_at': sync_time,
             'message': f'{"🚀 FULL SYNC" if is_first_sync else "♻️ INCREMENTAL SYNC"}: {len(subscriptions)} channels, {len(music_listened)} songs, {len(playlists)} playlists'
         }
     except HTTPException:
@@ -1113,6 +1116,7 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
                     'music_listened': cached_data.get('music_listened', []),
                     'video_genres': cached_data.get('video_genres', []),
                     'playlists': cached_data.get('playlists', []),
+                    'last_synced_at': doc.get('last_full_sync'),
                     'message': '⚠️  Sync encountered an error. Returning cached data. Please try again later.',
                     'warning': 'syncError'
                 }

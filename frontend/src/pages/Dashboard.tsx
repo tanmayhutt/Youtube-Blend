@@ -263,10 +263,59 @@ const Dashboard = () => {
               <Logo size={28} className="rounded" />
               <h1 className="text-lg font-bold text-foreground">YouTube Blend</h1>
             </div>
-            <Button variant="outline" onClick={handleLogout} className="gap-2 text-sm">
-              <LogOut className="w-4 h-4" />
-              Sign Out
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-2 text-sm">
+                  {userProfile?.picture ? (
+                    <img
+                      src={userProfile.picture}
+                      alt={profileName}
+                      className="w-6 h-6 rounded-full object-cover"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="w-6 h-6 rounded-full bg-muted text-muted-foreground text-xs font-semibold flex items-center justify-center">
+                      {profileInitial}
+                    </div>
+                  )}
+                  <span className="hidden sm:inline">{profileName}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>
+                  <div className="flex items-center gap-2">
+                    {userProfile?.picture ? (
+                      <img
+                        src={userProfile.picture}
+                        alt={profileName}
+                        className="w-8 h-8 rounded-full object-cover"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-muted text-muted-foreground text-xs font-semibold flex items-center justify-center">
+                        {profileInitial}
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-sm font-semibold">{profileName}</p>
+                      {profileEmail && (
+                        <p className="text-xs text-muted-foreground">{profileEmail}</p>
+                      )}
+                    </div>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem disabled>
+                  <Settings className="mr-2 h-4 w-4" />
+                  Settings (soon)
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>
