@@ -411,6 +411,26 @@ def get_cached_user_data(google_id: str, cache_validity_hours: int = 24):
         logger.error(f"Failed to retrieve cached data: {e}")
         return None
 
+def get_user_cached_data_for_compare(google_id: str):
+    """Fetch cached data and last sync timestamp for comparisons (no TTL check)."""
+    try:
+        if not google_id:
+            return None, None, "comparison_snapshot"
+
+        doc = users.find_one({'google_id': google_id})
+        if not doc:
+            return None, None, "comparison_snapshot"
+
+        cached_data = doc.get('cached_data')
+        last_synced_at = doc.get('cached_at') or doc.get('last_full_sync')
+        if cached_data:
+            return cached_data, last_synced_at, "cached"
+
+        return None, last_synced_at, "comparison_snapshot"
+    except Exception:
+        logger.exception("Failed to load cached data for comparison")
+        return None, None, "comparison_snapshot"
+
 @app.get("/auth/login")
 async def login(next: str = None, comparison_id: str = None):
     redirect_uri = build_redirect_uri()
@@ -1869,7 +1889,7 @@ async def join_comparison(comparison_id: str):
 
 
 @app.get("/compare/run/{comparison_id}")
-async def get_comparison(comparison_id: str, google_id: str = Depends(verify_token)):
+async def get_comparison(comparison_id: str, refresh: bool = False, google_id: str = Depends(verify_token)):
     """Get comparison results. Run comparison if not already completed."""
     comparison = comparisons.find_one({'_id': comparison_id})
     if not comparison:
@@ -1879,15 +1899,33 @@ async def get_comparison(comparison_id: str, google_id: str = Depends(verify_tok
     if comparison.get('user1_id') != google_id and comparison.get('user2_id') != google_id:
         raise HTTPException(status_code=403, detail="You are not authorized to view this comparison")
 
-    # If already completed, return cached results
-    if comparison.get('status') == 'completed' and comparison.get('results'):
-        return {'results': comparison.get('results')}
+    user1_id = comparison.get('user1_id')
+    user2_id = comparison.get('user2_id')
+
+    user1_cached, user1_last_synced, user1_source = get_user_cached_data_for_compare(user1_id)
+    user2_cached, user2_last_synced, user2_source = get_user_cached_data_for_compare(user2_id)
+
+    viewer_is_user1 = google_id == user1_id
+    meta = {
+        'viewer': {
+            'last_synced_at': user1_last_synced if viewer_is_user1 else user2_last_synced,
+            'data_source': user1_source if viewer_is_user1 else user2_source
+        },
+        'other': {
+            'last_synced_at': user2_last_synced if viewer_is_user1 else user1_last_synced,
+            'data_source': user2_source if viewer_is_user1 else user1_source
+        }
+    }
+
+    # If already completed, return cached results unless refresh is requested
+    if comparison.get('status') == 'completed' and comparison.get('results') and not refresh:
+        return {'results': comparison.get('results'), 'meta': meta}
 
     if comparison.get('status') != 'ready':
         raise HTTPException(status_code=400, detail="Comparison is not ready. Both users must complete login.")
 
-    user1_data = comparison.get('user1_data')
-    user2_data = comparison.get('user2_data')
+    user1_data = user1_cached or comparison.get('user1_data')
+    user2_data = user2_cached or comparison.get('user2_data')
 
     if not user1_data or not user2_data:
         raise HTTPException(status_code=400, detail="Missing user data for comparison")
@@ -1908,7 +1946,7 @@ async def get_comparison(comparison_id: str, google_id: str = Depends(verify_tok
             }
         )
 
-        return {'results': results}
+        return {'results': results, 'meta': meta}
     except Exception as e:
         logger.exception("Error running comparison")
         raise HTTPException(status_code=500, detail=f"Failed to run comparison: {str(e)}")
@@ -1917,7 +1955,7 @@ async def get_comparison(comparison_id: str, google_id: str = Depends(verify_tok
 @app.post("/compare/run/{comparison_id}")
 async def run_comparison(comparison_id: str, google_id: str = Depends(verify_token)):
     """Run the comparison between two users and return results (POST for backwards compatibility)."""
-    return await get_comparison(comparison_id, google_id)
+    return await get_comparison(comparison_id, refresh=False, google_id=google_id)
 
 
 @app.get("/auth/complete")

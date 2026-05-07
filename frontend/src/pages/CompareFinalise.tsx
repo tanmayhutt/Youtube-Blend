@@ -24,7 +24,70 @@ const CompareFinalise = () => {
 
   const [loading, setLoading] = useState(true);
   const [comparisonData, setComparisonData] = useState<any>(null);
+  const [comparisonMeta, setComparisonMeta] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const formatSyncTime = (value?: string) => {
+    if (!value) return "Unknown";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "Unknown";
+    return date.toLocaleString();
+  };
+
+  const isStale = (value?: string, hours = 12) => {
+    if (!value) return true;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return true;
+    const ageMs = Date.now() - date.getTime();
+    return ageMs > hours * 60 * 60 * 1000;
+  };
+
+  const runComparison = async (forceRefresh = false) => {
+    if (!id) return;
+    if (!forceRefresh) {
+      setLoading(true);
+    }
+
+    try {
+      const url = forceRefresh ? `/compare/run/${id}?refresh=1` : `/compare/run/${id}`;
+      const response = await authClient.get(url);
+      setComparisonData(response.data.results);
+      setComparisonMeta(response.data.meta);
+      setError(null);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || "Failed to load comparison results");
+      toast({
+        title: "Error",
+        description: "Could not load comparison results",
+        variant: "destructive",
+      });
+    } finally {
+      if (!forceRefresh) {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handleRefreshMyData = async () => {
+    setRefreshing(true);
+    try {
+      await authClient.post("/data/sync");
+      await runComparison(true);
+      toast({
+        title: "Data refreshed",
+        description: "Your comparison results are updated.",
+      });
+    } catch (err: any) {
+      toast({
+        title: "Refresh failed",
+        description: err.response?.data?.detail || "Could not refresh your data",
+        variant: "destructive",
+      });
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
     // Check authentication first
@@ -39,23 +102,6 @@ const CompareFinalise = () => {
       navigate("/");
       return;
     }
-
-    const runComparison = async () => {
-      try {
-        // Use GET request (POST also works for backwards compatibility)
-        const response = await authClient.get(`/compare/run/${id}`);
-        setComparisonData(response.data.results);
-      } catch (err: any) {
-        setError(err.response?.data?.detail || "Failed to load comparison results");
-        toast({
-          title: "Error",
-          description: "Could not load comparison results",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
 
     if (id) {
       runComparison();
@@ -157,6 +203,34 @@ const CompareFinalise = () => {
 
       <main className="container mx-auto px-4 py-12">
         <div className="animate-fade-in">
+          {comparisonMeta && (
+            <Card className="mb-8 p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm text-muted-foreground">Your data last synced:</p>
+                  {isStale(comparisonMeta.viewer?.last_synced_at) && (
+                    <Badge variant="destructive">Stale</Badge>
+                  )}
+                </div>
+                <p className="text-sm font-medium text-foreground">
+                  {formatSyncTime(comparisonMeta.viewer?.last_synced_at)}
+                </p>
+                <div className="flex items-center gap-2 mt-2">
+                  <p className="text-sm text-muted-foreground">Other user last synced:</p>
+                  {isStale(comparisonMeta.other?.last_synced_at) && (
+                    <Badge variant="secondary">Possibly stale</Badge>
+                  )}
+                </div>
+                <p className="text-sm font-medium text-foreground">
+                  {formatSyncTime(comparisonMeta.other?.last_synced_at)}
+                </p>
+              </div>
+              <Button onClick={handleRefreshMyData} disabled={refreshing} className="gap-2">
+                {refreshing ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                Refresh my data
+              </Button>
+            </Card>
+          )}
           {/* Match Score Card with 3D Visualization */}
           {matchMessage && (
             <Card className="mb-12 p-8 text-center border-red-500/30 bg-gradient-to-br from-red-500/5 via-background to-orange-500/5">
