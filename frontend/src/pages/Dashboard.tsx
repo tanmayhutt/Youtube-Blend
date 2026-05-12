@@ -335,27 +335,6 @@ const Dashboard = () => {
           <div className="text-center space-y-6">
             <div className="space-y-3">
               <h2 className="text-3xl font-bold text-foreground">Your YouTube Profile</h2>
-              <div className="flex items-center justify-center gap-3">
-                {userProfile?.picture ? (
-                  <img
-                    src={userProfile.picture}
-                    alt={profileName}
-                    className="w-10 h-10 rounded-full object-cover border border-border"
-                    loading="lazy"
-                  />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-muted text-muted-foreground text-sm font-semibold flex items-center justify-center">
-                    {profileInitial}
-                  </div>
-                )}
-                <div className="text-left">
-                  <p className="text-xs text-muted-foreground">Signed in as</p>
-                  <p className="text-sm font-medium text-foreground">{profileName}</p>
-                  {profileEmail && (
-                    <p className="text-xs text-muted-foreground">{profileEmail}</p>
-                  )}
-                </div>
-              </div>
               <p className="text-sm text-muted-foreground">Last synced: {userData?.last_synced_at ? new Date(userData.last_synced_at).toLocaleDateString() : 'Never'}</p>
             </div>
 
