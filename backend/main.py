@@ -38,24 +38,19 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
-# Rate limiting storage: {ip: {endpoint: [timestamps]}}
 rate_limit_store = defaultdict(lambda: defaultdict(list))
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        # Get client IP
         client_ip = request.client.host if request.client else "unknown"
         endpoint = request.url.path
 
-        # Check rate limits for sensitive endpoints
         if endpoint in ["/compare/join", "/compare/run"]:
             now = time()
-            # Clean old requests (older than 60 seconds)
             rate_limit_store[client_ip][endpoint] = [
                 t for t in rate_limit_store[client_ip][endpoint] if now - t < 60
             ]
 
-            # Allow max 20 requests per minute per IP
             if len(rate_limit_store[client_ip][endpoint]) >= 20:
                 raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
 
@@ -67,25 +62,21 @@ app.add_middleware(RateLimitMiddleware)
 
 def generate_secure_code() -> str:
     """Generate a cryptographically secure random code for comparison links."""
-    return secrets.token_urlsafe(16)  # 128 bits of entropy
+    return secrets.token_urlsafe(16)
 
 def validate_redirect_target(target: Optional[str]) -> str:
     """Validate and sanitize redirect target."""
-    # Whitelist of allowed redirect paths
     allowed_paths = {'/dashboard', '/compare/finalise'}
 
     if not target:
         return '/dashboard'
 
-    # Remove leading slashes and check
     target_path = f'/{target.lstrip("/")}'
 
-    # Check if it's in whitelist
     for allowed in allowed_paths:
         if target_path.startswith(allowed):
             return target_path
 
-    # Default to dashboard if not whitelisted
     return '/dashboard'
 
 def build_redirect_uri() -> str:
@@ -96,19 +87,15 @@ def build_redirect_uri() -> str:
     """
     deployed = os.getenv('DEPLOYED_DOMAIN')
     if deployed:
-        # Remove any trailing slashes and ensure proper format
         deployed = deployed.rstrip('/')
         if deployed.startswith('http://') or deployed.startswith('https://'):
             return f"{deployed}/auth/callback"
         return f"https://{deployed}/auth/callback"
-    # Local development fallback
     host = os.getenv('DEV_HOST', 'localhost:8000')
     scheme = 'http' if 'localhost' in host or host.startswith('127.') else 'https'
     return f"{scheme}://{host}/auth/callback"
 
-# CORS - Allow frontend origin
 frontend_url = os.getenv("FRONTEND_URL", "https://youtube-blend.vercel.app")
-# Remove trailing slash and ensure it's a valid origin
 frontend_origin = frontend_url.rstrip('/')
 app.add_middleware(
     CORSMiddleware,
@@ -118,7 +105,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# MongoDB
 client = MongoClient(os.getenv("MONGO_URI"), serverSelectionTimeoutMS=10000)
 db = client["youtube-blend"]
 users = db.users
@@ -126,16 +112,13 @@ auth_states = db.auth_states
 auth_codes = db.auth_codes
 comparisons = db.comparisons
 
-# Ensure TTL indexes exist for state, auth codes, and comparisons
 try:
     auth_states.create_index("expires_at", expireAfterSeconds=0)
     auth_codes.create_index("expires_at", expireAfterSeconds=0)
-    comparisons.create_index("expires_at", expireAfterSeconds=0)  # Auto-cleanup expired comparisons
+    comparisons.create_index("expires_at", expireAfterSeconds=0)
 except Exception:
-    # Index creation failure should not crash the app at import time
     logger.exception("Failed to ensure TTL indexes on collections")
 
-# Google OAuth Scopes
 SCOPES = [
     "https://www.googleapis.com/auth/youtube.readonly",
     "openid",
@@ -143,7 +126,6 @@ SCOPES = [
     "https://www.googleapis.com/auth/userinfo.profile"
 ]
 
-# JWT verification dependency
 async def verify_token(authorization: str = Header(None)):
     """Verify JWT token from Authorization header."""
     if not authorization:
@@ -156,7 +138,7 @@ async def verify_token(authorization: str = Header(None)):
             raise HTTPException(status_code=500, detail='JWT_SECRET not configured')
 
         payload = pyjwt.decode(token, jwt_secret, algorithms=['HS256'])
-        return payload.get('sub')  # Returns google_id
+        return payload.get('sub')
     except pyjwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token expired")
     except pyjwt.InvalidTokenError:
@@ -204,7 +186,6 @@ def detect_item_changes(new_item: dict, old_item: dict) -> dict:
     """Detect what fields changed between old and new item."""
     changes = {}
 
-    # Check common fields that might change
     comparable_fields = ['title', 'description', 'thumbnail_url', 'genre', 'watch_count']
 
     for field in comparable_fields:
@@ -222,11 +203,9 @@ def detect_item_changes(new_item: dict, old_item: dict) -> dict:
 def cache_user_data(google_id: str, data: dict):
     """Store user's YouTube data in MongoDB with smart incremental updates."""
     try:
-        # Get existing data to merge
         existing_doc = users.find_one({'google_id': google_id})
         existing_data = existing_doc.get('cached_data', {}) if existing_doc else {}
 
-        # Extract IDs from new and old data for comparison
         new_sub_ids = {s['channel_id']: s for s in data.get('subscriptions', [])}
         old_sub_ids = {s['channel_id']: s for s in existing_data.get('subscriptions', [])}
 
@@ -236,7 +215,6 @@ def cache_user_data(google_id: str, data: dict):
         new_music_ids = {m['video_id']: m for m in data.get('music_listened', [])}
         old_music_ids = {m['video_id']: m for m in existing_data.get('music_listened', [])}
 
-        # Process subscriptions with smart updates
         updated_subscriptions = []
         added_subs = 0
         changed_subs = 0
@@ -245,16 +223,13 @@ def cache_user_data(google_id: str, data: dict):
             old_sub = old_sub_ids.get(channel_id)
 
             if not old_sub:
-                # New subscription
                 new_sub['added_at'] = datetime.utcnow()
                 new_sub['last_synced_at'] = datetime.utcnow()
                 added_subs += 1
             else:
-                # Existing subscription - check for changes
                 changes = detect_item_changes(new_sub, old_sub)
 
                 if changes:
-                    # Keep original added_at, update the changed fields
                     new_sub['added_at'] = old_sub.get('added_at', datetime.utcnow())
                     new_sub['updated_at'] = datetime.utcnow()
                     new_sub['last_synced_at'] = datetime.utcnow()
@@ -262,13 +237,11 @@ def cache_user_data(google_id: str, data: dict):
                     changed_subs += 1
                     logger.info(f"Updated subscription {channel_id}: {list(changes.keys())}")
                 else:
-                    # No changes, keep timestamps
                     new_sub['added_at'] = old_sub.get('added_at', datetime.utcnow())
                     new_sub['last_synced_at'] = datetime.utcnow()
 
             updated_subscriptions.append(new_sub)
 
-        # Process videos with smart updates
         updated_videos = []
         added_vids = 0
         changed_vids = 0
@@ -277,12 +250,10 @@ def cache_user_data(google_id: str, data: dict):
             old_video = old_video_ids.get(video_id)
 
             if not old_video:
-                # New video
                 new_video['added_at'] = datetime.utcnow()
                 new_video['last_synced_at'] = datetime.utcnow()
                 added_vids += 1
             else:
-                # Existing video - check for changes
                 changes = detect_item_changes(new_video, old_video)
 
                 if changes:
@@ -298,7 +269,6 @@ def cache_user_data(google_id: str, data: dict):
 
             updated_videos.append(new_video)
 
-        # Process music with smart updates and watch count tracking
         updated_music = []
         added_songs = 0
         changed_songs = 0
@@ -307,16 +277,13 @@ def cache_user_data(google_id: str, data: dict):
             old_music = old_music_ids.get(music_id)
 
             if not old_music:
-                # New song
                 new_music['added_at'] = datetime.utcnow()
                 new_music['first_watched_at'] = datetime.utcnow()
                 new_music['last_synced_at'] = datetime.utcnow()
                 added_songs += 1
             else:
-                # Existing song - check for changes
                 changes = detect_item_changes(new_music, old_music)
 
-                # Also check if watch count increased
                 old_count = old_music.get('watch_count', 0)
                 new_count = new_music.get('watch_count', 0)
 
@@ -343,7 +310,6 @@ def cache_user_data(google_id: str, data: dict):
 
             updated_music.append(new_music)
 
-        # Detect unsubscribed/removed items (in old but not in new)
         removed_subs = set(old_sub_ids.keys()) - set(new_sub_ids.keys())
         removed_vids = set(old_video_ids.keys()) - set(new_video_ids.keys())
         removed_music = set(old_music_ids.keys()) - set(new_music_ids.keys())
@@ -379,7 +345,6 @@ def cache_user_data(google_id: str, data: dict):
             }}
         )
 
-        # Log summary
         logger.info(
             f"Synced {google_id}: "
             f"+{added_subs} subs ({changed_subs} updated), "
@@ -452,7 +417,7 @@ async def login(next: str = None, comparison_id: str = None):
 
         auth_url, state = flow.authorization_url(
             access_type="offline",
-            include_granted_scopes="true",  # String "true"
+            include_granted_scopes="true",
             prompt="consent"
         )
     except Exception as e:
@@ -471,7 +436,6 @@ async def login(next: str = None, comparison_id: str = None):
 
 @app.get("/auth/callback")
 async def callback(code: str, state: str):
-    # Retrieve and delete state document so we keep 'next' param
     state_doc = auth_states.find_one_and_delete({
         "state": state,
         "expires_at": {"$gt": datetime.utcnow()}
@@ -509,7 +473,6 @@ async def callback(code: str, state: str):
             logger.error("Userinfo missing id: %s", userinfo)
             raise HTTPException(status_code=500, detail="Failed to retrieve Google user id")
 
-        # Build Credentials with client_id/client_secret so the stored JSON contains them
         cred = Credentials(
             token=tokens.get('access_token'),
             refresh_token=tokens.get('refresh_token'),
@@ -525,28 +488,22 @@ async def callback(code: str, state: str):
             "picture": userinfo.get("picture")
         }
 
-        # Store token JSON under `token_json` for consistency with `auth_setup.py`
         users.update_one(
             {"google_id": google_id},
             {"$set": {"token_json": cred.to_json(), "profile": profile, "updated_at": datetime.utcnow()}},
             upsert=True
         )
 
-        # Handle comparison flow if comparison_id exists
         comparison_id = state_doc.get('comparison_id')
         if comparison_id:
-            # Check if comparison exists and is valid
             comparison = comparisons.find_one({'_id': comparison_id})
             if not comparison:
                 raise HTTPException(status_code=400, detail="Invalid comparison link")
 
-            # Check if this is the second user joining
             if comparison.get('user1_id') and comparison.get('user1_id') != google_id:
-                # This is user2 - store their data and mark comparison as ready
                 try:
                     creds = get_credentials_from_db(google_id)
                     if not creds:
-                        # Store credentials first
                         users.update_one(
                             {"google_id": google_id},
                             {"$set": {"token_json": cred.to_json(), "updated_at": datetime.utcnow()}},
@@ -581,7 +538,6 @@ async def callback(code: str, state: str):
                             }
                         )
 
-                        # Create auth code for user2 and redirect to finalise page
                         auth_code = secrets.token_urlsafe(32)
                         code_doc = {
                             'code': auth_code,
@@ -599,7 +555,6 @@ async def callback(code: str, state: str):
                     logger.exception("Error fetching user2 data during comparison")
                     raise HTTPException(status_code=500, detail=f"Failed to fetch YouTube data: {str(e)}")
 
-        # Create a short-lived one-time auth code and store in DB
         auth_code = secrets.token_urlsafe(32)
         code_doc = {
             'code': auth_code,
@@ -611,8 +566,6 @@ async def callback(code: str, state: str):
         }
         auth_codes.insert_one(code_doc)
 
-        # Always redirect to frontend's /auth/complete route
-        # The frontend will handle the code exchange via /auth/exchange endpoint
         frontend = os.getenv("FRONTEND_URL", "https://blend-youtube.onrender.com")
         final_url = f"{frontend.rstrip('/')}/auth/complete?code={auth_code}"
         if state_doc.get('next'):
@@ -652,13 +605,11 @@ async def debug_config():
         'mongo_ping': None,
     }
 
-    # Build redirect URI
     try:
         out['redirect_uri'] = build_redirect_uri()
     except Exception as e:
         out['redirect_uri_error'] = str(e)
 
-    # Try to construct OAuth Flow
     try:
         Flow.from_client_config(
             {
@@ -676,7 +627,6 @@ async def debug_config():
     except Exception as e:
         out['flow_error'] = str(e)
 
-    # Ping Mongo
     try:
         pong = client.admin.command('ping')
         out['mongo_ping'] = pong
@@ -693,7 +643,6 @@ class ExchangeRequest(BaseModel):
 @app.post("/auth/exchange")
 async def auth_exchange(req: ExchangeRequest):
     """Exchange a single-use auth code for a signed JWT and user id."""
-    # Find and delete the code document
     code_doc = auth_codes.find_one_and_delete({
         'code': req.code,
         'expires_at': {'$gt': datetime.utcnow()}
@@ -722,9 +671,6 @@ async def refresh_token(body: dict):
         if not refresh_token_provided:
             raise HTTPException(status_code=400, detail='Refresh token required')
 
-        # Get the comparison code to find the user
-        # The refresh token is the OAuth refresh token stored in the code doc
-        # We need to find which google_id this refresh token belongs to
         code_collection = db['comparison_codes']
         code_doc = code_collection.find_one({'refresh_token': refresh_token_provided})
 
@@ -737,7 +683,6 @@ async def refresh_token(body: dict):
         if not jwt_secret:
             raise HTTPException(status_code=500, detail='JWT_SECRET not configured')
 
-        # Issue new JWT token
         new_token = pyjwt.encode({
             'sub': google_id,
             'exp': datetime.utcnow() + timedelta(minutes=30)
@@ -755,7 +700,6 @@ async def refresh_token(body: dict):
 async def get_my_data(google_id: str = Depends(verify_token)):
     """Get authenticated user's YouTube data from cache (instant response)."""
     try:
-        # Serve from DB first - fastest response
         doc = users.find_one({'google_id': google_id})
         if doc and 'cached_data' in doc:
             cached_data = doc['cached_data']
@@ -772,7 +716,6 @@ async def get_my_data(google_id: str = Depends(verify_token)):
                 'user_id': google_id
             }
 
-        # No cached data yet
         return {
             'subscriptions': [],
             'subscription_genres': [],
@@ -796,7 +739,6 @@ async def force_full_sync(google_id: str = Depends(verify_token)):
     try:
         logger.info(f"🔥 FORCING FULL SYNC by clearing cache for {google_id}")
 
-        # Clear ALL cached data
         users.update_one(
             {'google_id': google_id},
             {
@@ -809,7 +751,6 @@ async def force_full_sync(google_id: str = Depends(verify_token)):
         )
         logger.info("✅ Cache cleared")
 
-        # Now immediately trigger sync
         logger.info("⏳ Starting FULL SYNC...")
         creds = get_credentials_from_db(google_id)
         if not creds:
@@ -817,7 +758,6 @@ async def force_full_sync(google_id: str = Depends(verify_token)):
 
         loop = asyncio.get_event_loop()
 
-        # Fetch ALL YouTube data in parallel
         logger.info("⏳ Fetching subscriptions + saved videos...")
         subscriptions_client = get_youtube_service(creds)
         saved_videos_client = get_youtube_service(creds)
@@ -835,7 +775,6 @@ async def force_full_sync(google_id: str = Depends(verify_token)):
         else:
             subscriptions = subscriptions_result
 
-        # Handle exceptions
         if isinstance(subscriptions, Exception):
             logger.error(f"❌ Error fetching subscriptions: {subscriptions}")
             subscriptions = []
@@ -863,13 +802,11 @@ async def force_full_sync(google_id: str = Depends(verify_token)):
         logger.info(f"   - {len(saved_data.get('saved_videos', []))} saved videos")
         logger.info(f"   - {len(saved_data.get('video_ids', []))} video IDs")
 
-        # Determine music from saved videos
         logger.info("⏳ Identifying music...")
         music_client = get_youtube_service(creds)
         music_listened, video_genres = determine_music_and_genres(music_client, saved_data.get('video_ids', []))
         logger.info(f"🎵 Found {len(music_listened)} music tracks")
 
-        # Fetch genres
         genres_client = get_youtube_service(creds)
         playlists_client = get_youtube_service(creds)
         subscription_genres = await loop.run_in_executor(None, fetch_subscription_genres, genres_client, subscriptions)
@@ -885,7 +822,6 @@ async def force_full_sync(google_id: str = Depends(verify_token)):
                 }}
             )
 
-        # Build user data
         user_data = {
             'subscriptions': subscriptions,
             'subscription_genres': subscription_genres,
@@ -895,7 +831,6 @@ async def force_full_sync(google_id: str = Depends(verify_token)):
             'playlists': playlists
         }
 
-        # Store in DB
         cache_user_data(google_id, user_data)
         users.update_one({'google_id': google_id}, {'$set': {'last_full_sync': datetime.utcnow()}})
 
@@ -941,7 +876,6 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
 
         logger.info(f"{'🚀 FIRST SYNC (Full fetch)' if is_first_sync else '♻️ INCREMENTAL SYNC'} for {google_id}")
 
-        # ALWAYS fetch fresh from YouTube (for comparison with DB)
         loop = asyncio.get_event_loop()
 
         logger.info("⏳ Fetching fresh data from YouTube...")
@@ -961,7 +895,6 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
         else:
             subscriptions = subscriptions_result
 
-        # Check for quota exceeded errors
         quota_exceeded = False
         if isinstance(subscriptions, Exception) and "quotaExceeded" in str(subscriptions):
             quota_exceeded = True
@@ -970,7 +903,6 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
             quota_exceeded = True
             logger.warning("⚠️  QUOTA EXCEEDED during saved videos fetch")
 
-        # If quota exceeded, return cached data instead of failing
         if quota_exceeded and not is_first_sync:
             logger.info("💾 Quota exceeded - returning cached data instead")
             cached_data = doc.get('cached_data', {})
@@ -988,7 +920,6 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
                 'warning': 'quotaExceeded'
             }
 
-        # Handle exceptions from parallel fetch
         if isinstance(subscriptions, Exception):
             logger.error(f"❌ Error fetching subscriptions: {subscriptions}")
             subscriptions = []
@@ -1018,7 +949,6 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
         logger.info(f"   - {len(subscriptions)} subscriptions")
         logger.info(f"   - {len(saved_data.get('saved_videos', []))} saved videos")
 
-        # Determine music and genres from saved videos (with crash protection)
         try:
             music_client = get_youtube_service(creds)
             music_listened, video_genres = await loop.run_in_executor(
@@ -1032,7 +962,6 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
             logger.exception("Music determination crashed")
             music_listened, video_genres = [], []
 
-        # Fetch subscription genres in parallel (with crash protection)
         if use_cached_subs:
             subscription_genres = cached_sub_genres
         else:
@@ -1053,7 +982,6 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
                 }}
             )
 
-        # Fetch all playlists (with crash protection)
         try:
             playlists_client = get_youtube_service(creds)
             playlists = await loop.run_in_executor(None, fetch_playlists, playlists_client)
@@ -1061,7 +989,6 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
             logger.error(f"❌ Error fetching playlists: {str(e)}")
             playlists = []
 
-        # Build fresh user data from YouTube
         fresh_user_data = {
             'subscriptions': subscriptions,
             'subscription_genres': subscription_genres,
@@ -1072,10 +999,8 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
         }
 
         logger.info(f"💾 Storing to database (with incremental comparison)...")
-        # This function detects changes and only stores diffs for INCREMENTAL syncs
         cache_user_data(google_id, fresh_user_data)
 
-        # Update sync timestamp
         sync_time = datetime.utcnow()
         users.update_one({'google_id': google_id}, {'$set': {'last_full_sync': sync_time}})
 
@@ -1101,7 +1026,6 @@ async def sync_user_data(google_id: str = Depends(verify_token)):
         raise
     except Exception as e:
         logger.exception(f"CRITICAL ERROR in sync: {str(e)}")
-        # Try to return cached data as fallback
         try:
             doc = users.find_one({'google_id': google_id})
             if doc and doc.get('cached_data'):
@@ -1155,7 +1079,6 @@ async def debug_data(google_id: str = Depends(verify_token)):
 async def force_refresh(google_id: str = Depends(verify_token)):
     """Force clear all cache and credentials to trigger fresh full sync."""
     try:
-        # Clear all cached data to force fresh authentication with new scopes
         result = users.update_one(
             {'google_id': google_id},
             {
@@ -1187,7 +1110,6 @@ async def test_liked_videos(google_id: str = Depends(verify_token)):
 
         youtube = get_youtube_service(creds)
 
-        # Try to fetch liked videos
         logger.info("🧪 TEST: Attempting to fetch liked videos...")
         request = youtube.videos().list(part='snippet', myRating='like', maxResults=5)
         response = request.execute()
@@ -1284,7 +1206,6 @@ async def get_data_changes(google_id: str = Depends(verify_token)):
         cached_data = doc['cached_data']
         sync_stats = doc.get('sync_stats', {})
 
-        # NEW items: have added_at, no updated_at
         new_subscriptions = [
             s for s in cached_data.get('subscriptions', [])
             if 'added_at' in s and 'updated_at' not in s
@@ -1300,7 +1221,6 @@ async def get_data_changes(google_id: str = Depends(verify_token)):
             if 'added_at' in m and 'updated_at' not in m
         ]
 
-        # UPDATED items: have changes field (title, thumbnail, description changed, or watch count increased)
         updated_subscriptions = [
             s for s in cached_data.get('subscriptions', [])
             if 'changes' in s
@@ -1346,7 +1266,6 @@ async def api_health_check(google_id: str = Depends(verify_token)):
             'tests': {}
         }
 
-        # TEST 1: Check authentication by getting channel info
         logger.info("🧪 TEST 1: Checking authentication with channels.list...")
         try:
             channels_resp = youtube.channels().list(part='id,snippet', mine=True).execute()
@@ -1363,7 +1282,6 @@ async def api_health_check(google_id: str = Depends(verify_token)):
             }
             logger.error(f"Auth test failed: {str(e)}")
 
-        # TEST 2: Check subscriptions
         logger.info("🧪 TEST 2: Testing subscriptions.list...")
         try:
             subs_resp = youtube.subscriptions().list(part='snippet', mine=True, maxResults=5).execute()
@@ -1382,7 +1300,6 @@ async def api_health_check(google_id: str = Depends(verify_token)):
             }
             logger.error(f"Subscriptions test failed: {str(e)}")
 
-        # TEST 3: Check liked videos via myRating
         logger.info("🧪 TEST 3: Testing videos.list with myRating='like'...")
         try:
             liked_resp = youtube.videos().list(part='snippet', myRating='like', maxResults=5, order='date').execute()
@@ -1402,7 +1319,6 @@ async def api_health_check(google_id: str = Depends(verify_token)):
             }
             logger.error(f"Liked videos (myRating) test failed: {str(e)}")
 
-        # TEST 4: Check playlists
         logger.info("🧪 TEST 4: Testing playlists.list...")
         try:
             playlists_resp = youtube.playlists().list(part='id,snippet', mine=True, maxResults=5).execute()
@@ -1421,7 +1337,6 @@ async def api_health_check(google_id: str = Depends(verify_token)):
             }
             logger.error(f"Playlists test failed: {str(e)}")
 
-        # TEST 5: Check playlist items (from first playlist if exists)
         logger.info("🧪 TEST 5: Testing playlistItems.list...")
         try:
             playlists_resp = youtube.playlists().list(part='id,snippet', mine=True, maxResults=1).execute()
@@ -1449,7 +1364,6 @@ async def api_health_check(google_id: str = Depends(verify_token)):
             }
             logger.error(f"Playlist items test failed: {str(e)}")
 
-        # TEST 6: Check video categories
         logger.info("🧪 TEST 6: Testing videoCategories.list...")
         try:
             cats_resp = youtube.videoCategories().list(part='snippet', regionCode='US', maxResults=5).execute()
@@ -1466,7 +1380,6 @@ async def api_health_check(google_id: str = Depends(verify_token)):
             }
             logger.error(f"Video categories test failed: {str(e)}")
 
-        # SUMMARY
         failed_tests = [name for name, result in results['tests'].items() if result.get('status') == 'FAILED']
         results['summary'] = {
             'total_tests': len(results['tests']),
@@ -1498,7 +1411,6 @@ async def debug_fetch(google_id: str = Depends(verify_token)):
             'steps': []
         }
 
-        # Step 1: Try subscriptions
         logger.info("DEBUG: Step 1 - Fetching subscriptions...")
         try:
             subs = fetch_subscriptions(youtube)
@@ -1517,7 +1429,6 @@ async def debug_fetch(google_id: str = Depends(verify_token)):
             })
             logger.error(f"DEBUG: Subscriptions failed: {str(e)}")
 
-        # Step 2: Try saved videos
         logger.info("DEBUG: Step 2 - Fetching saved videos...")
         try:
             saved_data = fetch_saved_videos(youtube)
@@ -1539,7 +1450,6 @@ async def debug_fetch(google_id: str = Depends(verify_token)):
             logger.error(f"DEBUG: Saved videos failed: {str(e)}")
             saved_data = {'video_ids': [], 'saved_videos': []}
 
-        # Step 3: Try music identification
         logger.info("DEBUG: Step 3 - Identifying music...")
         try:
             music, genres = determine_music_and_genres(youtube, saved_data.get('video_ids', []))
@@ -1559,7 +1469,6 @@ async def debug_fetch(google_id: str = Depends(verify_token)):
             })
             logger.error(f"DEBUG: Music identification failed: {str(e)}")
 
-        # Step 4: Try subscription genres
         logger.info("DEBUG: Step 4 - Fetching subscription genres...")
         try:
             sub_genres = fetch_subscription_genres(youtube, subs)
@@ -1578,7 +1487,6 @@ async def debug_fetch(google_id: str = Depends(verify_token)):
             })
             logger.error(f"DEBUG: Subscription genres failed: {str(e)}")
 
-        # Step 5: Try playlists
         logger.info("DEBUG: Step 5 - Fetching playlists...")
         try:
             playlists = fetch_playlists(youtube)
@@ -1623,7 +1531,6 @@ async def test_simple_fetch(google_id: str = Depends(verify_token)):
 
         logger.info(f"🧪 TEST SYNC (no DB) for {google_id}")
 
-        # Fetch ALL YouTube data in parallel
         logger.info("⏳ Fetching fresh data from YouTube (NO DB STORE)...")
         subscriptions, saved_data = await asyncio.gather(
             loop.run_in_executor(None, fetch_subscriptions, youtube),
@@ -1631,7 +1538,6 @@ async def test_simple_fetch(google_id: str = Depends(verify_token)):
             return_exceptions=True
         )
 
-        # Handle exceptions from parallel fetch
         if isinstance(subscriptions, Exception):
             logger.error(f"❌ Error fetching subscriptions: {subscriptions}")
             subscriptions = []
@@ -1643,13 +1549,10 @@ async def test_simple_fetch(google_id: str = Depends(verify_token)):
         logger.info(f"   - {len(subscriptions)} subscriptions")
         logger.info(f"   - {len(saved_data.get('saved_videos', []))} saved videos")
 
-        # Determine music and genres from saved videos
         music_listened, video_genres = determine_music_and_genres(youtube, saved_data.get('video_ids', []))
 
-        # Fetch subscription genres in parallel
         subscription_genres = await loop.run_in_executor(None, fetch_subscription_genres, youtube, subscriptions)
 
-        # Fetch all playlists
         playlists = await loop.run_in_executor(None, fetch_playlists, youtube)
 
         logger.info(f"✅ TEST SYNC COMPLETE (data NOT saved to DB):")
@@ -1691,7 +1594,6 @@ async def debug_videos_only(google_id: str = Depends(verify_token)):
         saved_videos = []
         video_ids = []
 
-        # METHOD 1: myRating='like'
         logger.info("\n📺 METHOD 1: myRating='like'")
         logger.info("-" * 80)
         method1_count = 0
@@ -1724,7 +1626,6 @@ async def debug_videos_only(google_id: str = Depends(verify_token)):
                     method1_count += len(items)
                     logger.info(f"    Running total: {method1_count}")
 
-                    # Check for next page
                     request = youtube.videos().list_next(request, response)
                     if request:
                         logger.info(f"    → Next page exists, continuing...")
@@ -1743,7 +1644,6 @@ async def debug_videos_only(google_id: str = Depends(verify_token)):
             logger.error(f"❌ METHOD 1 FAILED: {method1_error}")
             logger.exception("Full traceback:")
 
-        # METHOD 2: Playlists
         logger.info("\n📁 METHOD 2: Playlists")
         logger.info("-" * 80)
         method2_count = 0
@@ -1764,7 +1664,6 @@ async def debug_videos_only(google_id: str = Depends(verify_token)):
                         playlist_title = playlist['snippet']['title']
                         logger.info(f"    📋 Playlist: {playlist_title} ({playlist_id})")
 
-                        # Fetch items from this playlist
                         item_request = youtube.playlistItems().list(part='snippet', playlistId=playlist_id, maxResults=50)
                         items_count = 0
 
@@ -1852,7 +1751,6 @@ async def debug_cors():
 async def generate_comparison_link(google_id: str = Depends(verify_token)):
     """Generate a shareable comparison link for the authenticated user."""
     try:
-        # Use cached data if available to speed up link generation
         cached_data = get_cached_user_data(google_id, cache_validity_hours=24)
 
         if cached_data:
@@ -1864,14 +1762,12 @@ async def generate_comparison_link(google_id: str = Depends(verify_token)):
                 'video_genres': cached_data.get('video_genres', [])
             }
         else:
-            # Fetch user's data with parallel optimization
             creds = get_credentials_from_db(google_id)
             if not creds:
                 raise HTTPException(status_code=401, detail="Invalid or expired credentials")
 
             youtube = get_youtube_service(creds)
 
-            # Parallel fetching
             loop = asyncio.get_event_loop()
             subscriptions, saved_data = await asyncio.gather(
                 loop.run_in_executor(None, fetch_subscriptions, youtube),
@@ -1896,7 +1792,6 @@ async def generate_comparison_link(google_id: str = Depends(verify_token)):
                 'video_genres': video_genres
             }
 
-        # Create comparison document with secure random code
         comparison_id = generate_secure_code()
         csrf_token = secrets.token_urlsafe(32)
         frontend = os.getenv("FRONTEND_URL", "https://blend-youtube.onrender.com")
@@ -1928,14 +1823,12 @@ async def join_comparison(comparison_id: str):
     if not comparison:
         raise HTTPException(status_code=404, detail="Comparison link not found or expired")
 
-    # Check expiration (2 hour limit)
     if comparison.get('expires_at') and comparison['expires_at'] < datetime.utcnow():
         raise HTTPException(status_code=410, detail="Comparison link has expired (2 hour limit)")
 
     if comparison.get('status') == 'ready' or comparison.get('status') == 'completed':
         raise HTTPException(status_code=400, detail="This comparison is already complete")
 
-    # Get the OAuth login URL directly
     redirect_uri = build_redirect_uri()
 
     try:
@@ -1959,7 +1852,6 @@ async def join_comparison(comparison_id: str):
             prompt="consent"
         )
 
-        # Store state with comparison_id
         auth_states.insert_one({
             "state": state,
             "created_at": datetime.utcnow(),
@@ -1967,7 +1859,6 @@ async def join_comparison(comparison_id: str):
             "comparison_id": comparison_id
         })
 
-        # Redirect directly to Google OAuth
         return RedirectResponse(url=auth_url, status_code=302)
     except Exception as e:
         logger.exception("Failed to build OAuth flow for comparison join")
@@ -1981,7 +1872,6 @@ async def get_comparison(comparison_id: str, refresh: bool = False, google_id: s
     if not comparison:
         raise HTTPException(status_code=404, detail="Comparison not found")
 
-    # Verify user is part of this comparison
     if comparison.get('user1_id') != google_id and comparison.get('user2_id') != google_id:
         raise HTTPException(status_code=403, detail="You are not authorized to view this comparison")
 
@@ -2005,7 +1895,6 @@ async def get_comparison(comparison_id: str, refresh: bool = False, google_id: s
 
     status = comparison.get('status')
 
-    # If already completed, return cached results unless refresh is requested
     if status == 'completed' and comparison.get('results') and not refresh:
         return {'results': comparison.get('results'), 'meta': meta}
 
@@ -2023,10 +1912,8 @@ async def get_comparison(comparison_id: str, refresh: bool = False, google_id: s
         raise HTTPException(status_code=400, detail="Missing user data for comparison")
 
     try:
-        # Run comparison logic
         results = compare_interests_logic(user1_data, user2_data)
 
-        # Update comparison status
         comparisons.update_one(
             {'_id': comparison_id},
             {
@@ -2063,7 +1950,6 @@ async def auth_complete_fallback(code: str = None, next: str = None):
         if not code:
                 raise HTTPException(status_code=400, detail='Missing code')
 
-        # Redeem the code (same logic as /auth/exchange)
         code_doc = auth_codes.find_one_and_delete({
                 'code': code,
                 'expires_at': {'$gt': datetime.utcnow()}
@@ -2081,13 +1967,10 @@ async def auth_complete_fallback(code: str = None, next: str = None):
                 'exp': datetime.utcnow() + timedelta(minutes=30)
         }, jwt_secret, algorithm='HS256')
 
-        # Validate redirect target against whitelist
         redirect_target = validate_redirect_target(next)
 
-        # Safely escape JSON to prevent XSS
         tokens_json = json.dumps({'access_token': token})
         frontend = os.getenv('FRONTEND_URL', 'https://blend-youtube.onrender.com')
-        # Remove any slashes from frontend to prevent open redirect
         frontend_safe = frontend.rstrip('/')
 
         html = f"""

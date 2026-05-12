@@ -1,5 +1,3 @@
-# auth_setup.py - FINAL WORKING (Google accepts "true" as string)
-
 from google_auth_oauthlib.flow import Flow
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -13,7 +11,7 @@ from typing import Tuple, Optional
 logger = logging.getLogger(__name__)
 
 SCOPES = [
-    'https://www.googleapis.com/auth/youtube',  # Full access needed for liked videos
+    'https://www.googleapis.com/auth/youtube',
     'openid',
     'https://www.googleapis.com/auth/userinfo.email',
     'https://www.googleapis.com/auth/userinfo.profile'
@@ -42,7 +40,7 @@ def get_google_auth_flow(redirect_uri: str) -> Flow:
         }
     }
     flow = Flow.from_client_config(config, SCOPES)
-    flow.redirect_uri = redirect_uri  # Force it
+    flow.redirect_uri = redirect_uri
     return flow
 
 
@@ -72,17 +70,14 @@ def get_credentials_from_db(google_id: str) -> Optional[Credentials]:
     if not doc:
         return None
 
-    # Backwards-compat: some records may use `credentials` while newer ones use `token_json`
+    # Backwards-compat: some records may use `credentials` while newer ones use `token_json`.
     token_raw = doc.get('token_json') or doc.get('credentials') or doc.get('credentials_json')
     if not token_raw:
         return None
 
     try:
-        # token_raw may be a JSON string or already a dict
         token_data = json.loads(token_raw) if isinstance(token_raw, str) else token_raw
 
-        # Create Credentials defensively using available fields; prefer stored values,
-        # fall back to environment variables for client id/secret.
         creds = Credentials(
             token=token_data.get('token') or token_data.get('access_token'),
             refresh_token=token_data.get('refresh_token'),

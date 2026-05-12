@@ -13,7 +13,6 @@ client = MongoClient(mongo_uri)
 db = client['youtube_blend']
 users = db['users']
 
-# Get all users
 all_users = list(users.find({}, {'google_id': 1, 'email': 1}))
 
 if not all_users:

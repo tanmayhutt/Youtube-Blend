@@ -1,6 +1,3 @@
-# services/youtube.py - YouTube API functions for data fetching
-# Lovable AI: Frontend calls /data/me, which triggers these - display subscriptions, videos in UI.
-
 from googleapiclient.discovery import build
 import json
 from google.oauth2.credentials import Credentials
@@ -8,7 +5,7 @@ from typing import List, Dict, Tuple
 import logging
 import time
 import ssl
-import gc  # Garbage collection for memory management
+import gc
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +24,6 @@ def execute_with_retry(request, max_retries=3, backoff_factor=1):
                 logger.error(f"  Failed after {max_retries} attempts: {str(e)}")
                 raise
         except Exception as e:
-            # Don't retry on other errors
             raise
 
 def sanitize_string(s: str) -> str:
@@ -37,6 +33,7 @@ def sanitize_string(s: str) -> str:
 
 def get_youtube_service(creds: Credentials):
     """Creates a YouTube API client from credentials."""
+    # cache_discovery=False avoids shared disk cache issues in serverless.
     return build('youtube', 'v3', credentials=creds, cache_discovery=False)
 
 def fetch_subscriptions(youtube, return_status: bool = False):
@@ -59,10 +56,8 @@ def fetch_subscriptions(youtube, return_status: bool = False):
 
             batch_size = len(response.get('items', []))
 
-            # Process subscriptions with defensive checks
             for sub in response.get('items', []):
                 try:
-                    # Ensure required fields exist before accessing
                     if 'snippet' not in sub or 'resourceId' not in sub['snippet']:
                         logger.warning(f"⚠️  Skipping subscription missing resourceId: {sub.get('id', 'unknown')}")
                         continue
@@ -92,7 +87,6 @@ def fetch_subscription_genres(youtube, subscriptions_or_channel_ids):
     """Fetches genres/topics for subscriptions. Accepts either list of subscription dicts or channel ID strings."""
     genres = []
     try:
-        # Extract channel IDs if we received subscription objects
         if subscriptions_or_channel_ids and isinstance(subscriptions_or_channel_ids[0], dict):
             channel_ids = [sub.get('channel_id') for sub in subscriptions_or_channel_ids if sub.get('channel_id')]
         else:
@@ -100,12 +94,14 @@ def fetch_subscription_genres(youtube, subscriptions_or_channel_ids):
 
         logger.info(f"  Fetching genres for {len(channel_ids)} channels (batch size: 50)")
 
+        # YouTube API accepts up to 50 channel IDs per request.
         for i in range(0, len(channel_ids), 50):
             batch_ids = channel_ids[i:i+50]
             channel_request = youtube.channels().list(part='topicDetails', id=','.join(batch_ids))
             channel_response = execute_with_retry(channel_request)
             for channel in channel_response.get('items', []):
                 topics = channel.get('topicDetails', {}).get('topicCategories', [])
+                # topicCategories are URLs; use the last segment as the readable name.
                 genres.extend([sanitize_string(topic.split('/')[-1]) for topic in topics])
             logger.info(f"  Batch {i//50 + 1}: Added {len([sanitize_string(topic.split('/')[-1]) for topic in genres])} genres")
     except Exception as e:
@@ -120,7 +116,6 @@ def fetch_saved_videos(youtube):
     try:
         logger.info("🎬 Starting fetch_saved_videos...")
 
-        # Try Method 1: Liked videos via myRating
         logger.info("📺 Method 1: Fetching liked videos (myRating='like')...")
         try:
             # Note: 'order' parameter is NOT valid for myRating filter, only for search
@@ -161,7 +156,6 @@ def fetch_saved_videos(youtube):
             logger.exception("Full traceback for method 1:")
 
 
-        # Method 2: Fetch from "Liked Videos" playlist if it exists
         logger.info("📁 Method 2: Fetching from playlists (including 'Liked Videos' playlist)...")
         try:
             playlist_request = youtube.playlists().list(part='id,snippet', mine=True, maxResults=50)
@@ -219,7 +213,7 @@ def determine_music_and_genres(youtube, video_ids: List[str]) -> Tuple[List[Dict
     """Identifies music videos and genres from video IDs."""
     music_listened = []
     video_genres = []
-    category_cache = {}  # Cache category ID -> name mappings to avoid repeated API calls
+    category_cache = {}
 
     logger.info(f"🎵 Starting music identification for {len(video_ids)} video IDs")
 
@@ -228,7 +222,6 @@ def determine_music_and_genres(youtube, video_ids: List[str]) -> Tuple[List[Dict
         return [], []
 
     try:
-        # First pass: collect all category IDs we need to fetch
         all_category_ids = set()
         videos_data = []
 
@@ -237,7 +230,6 @@ def determine_music_and_genres(youtube, video_ids: List[str]) -> Tuple[List[Dict
             logger.info(f"Processing batch {i//50 + 1}: {len(batch_ids)} videos")
 
             try:
-                # Include statistics to get viewCount for sorting
                 request = youtube.videos().list(part='snippet,statistics', id=','.join(batch_ids))
                 response = execute_with_retry(request)
 
@@ -245,7 +237,6 @@ def determine_music_and_genres(youtube, video_ids: List[str]) -> Tuple[List[Dict
                     title = sanitize_string(video['snippet']['title'])
                     category_id = video['snippet'].get('categoryId')
 
-                    # Store video data for later processing
                     videos_data.append({
                         'title': title,
                         'video_id': video['id'],
@@ -254,18 +245,15 @@ def determine_music_and_genres(youtube, video_ids: List[str]) -> Tuple[List[Dict
                         'category_id': category_id
                     })
 
-                    # Collect category IDs to batch fetch
                     if category_id:
                         all_category_ids.add(category_id)
 
-                # Clean up response to free memory
                 del response
-                gc.collect()  # Force garbage collection after each batch
+                gc.collect()
             except Exception as e:
                 logger.error(f"❌ Error processing video batch: {str(e)}")
                 continue
 
-        # Second pass: batch fetch all category names at once
         logger.info(f"Fetching {len(all_category_ids)} unique category names...")
         if all_category_ids:
             # Batch categories in groups of 50 (YouTube API limit)
@@ -285,13 +273,11 @@ def determine_music_and_genres(youtube, video_ids: List[str]) -> Tuple[List[Dict
                         category_cache[cat_id] = cat_name
                         logger.info(f"  Cached category {cat_id} -> {cat_name}")
 
-                    # Clean up
                     del category_response
                     gc.collect()
                 except Exception as e:
                     logger.error(f"❌ Error fetching categories batch: {str(e)}")
 
-        # Third pass: process videos using cached category names
         logger.info(f"Processing {len(videos_data)} videos with cached categories...")
         for video in videos_data:
             title = video['title']
@@ -307,7 +293,6 @@ def determine_music_and_genres(youtube, video_ids: List[str]) -> Tuple[List[Dict
                 })
                 logger.info(f"  ✅ Found music: {title} (category: {category_id})")
 
-            # Add genre (use cached name or fallback to ID)
             if category_id:
                 genre = category_cache.get(category_id, f'Category {category_id}')
                 video_genres.append(genre)
@@ -317,7 +302,6 @@ def determine_music_and_genres(youtube, video_ids: List[str]) -> Tuple[List[Dict
         logger.error(f"❌ Error determining music/genres: {str(e)}")
         logger.exception("Full traceback for music identification:")
     finally:
-        # Final cleanup
         gc.collect()
 
     logger.info(f"🎵 determine_music_and_genres returning: {len(music_listened)} music, {len(set(video_genres))} genres")
@@ -346,9 +330,9 @@ def count_music_watch_times(youtube) -> Dict[str, int]:
     """Counts how many times each video appears in watch history AND identifies music.
     Returns dict with video_id -> watch_count mapping, with music metadata."""
     video_watch_counts = {}
-    music_data = {}  # Store full music metadata
+    music_data = {}
     try:
-        # Find watch history playlist (usually titled "Watch History")
+        # Watch History is a special playlist; if it's not accessible, we fall back.
         playlist_request = youtube.playlists().list(part='snippet,id', mine=True, maxResults=50)
         watch_history_id = None
 
@@ -360,7 +344,6 @@ def count_music_watch_times(youtube) -> Dict[str, int]:
                     break
             playlist_request = youtube.playlists().list_next(playlist_request, playlist_response)
 
-        # If watch history playlist found, count video appearances in it
         if watch_history_id:
             item_request = youtube.playlistItems().list(part='snippet', playlistId=watch_history_id, maxResults=50)
 
@@ -369,13 +352,12 @@ def count_music_watch_times(youtube) -> Dict[str, int]:
                 for item in item_response.get('items', []):
                     video_id = item['snippet']['resourceId'].get('videoId')
                     if video_id:
-                        # Each appearance in watch history = 1 listen
                         video_watch_counts[video_id] = video_watch_counts.get(video_id, 0) + 1
 
                 item_request = youtube.playlistItems().list_next(item_request, item_response)
 
-            # Now fetch video details for all watched videos to identify music
             if video_watch_counts:
+                # Batch video ids (max 50) for the videos.list endpoint.
                 for i in range(0, len(video_watch_counts), 50):
                     batch_ids = list(video_watch_counts.keys())[i:i+50]
                     try:
@@ -397,7 +379,6 @@ def count_music_watch_times(youtube) -> Dict[str, int]:
                     except Exception as e:
                         logger.error(f"Error fetching video details for music identification: {e}")
         else:
-            # Fallback: count from playlists if watch history not accessible
             playlist_request = youtube.playlists().list(part='id', mine=True, maxResults=50)
             while playlist_request:
                 playlist_response = playlist_request.execute()
@@ -409,7 +390,6 @@ def count_music_watch_times(youtube) -> Dict[str, int]:
                         for item in item_response.get('items', []):
                             video_id = item['snippet']['resourceId'].get('videoId')
                             if video_id:
-                                # Each playlist appearance counts as 1
                                 video_watch_counts[video_id] = video_watch_counts.get(video_id, 0) + 1
                         item_request = youtube.playlistItems().list_next(item_request, item_response)
                 playlist_request = youtube.playlists().list_next(playlist_request, playlist_response)
