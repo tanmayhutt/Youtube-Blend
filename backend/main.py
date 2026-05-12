@@ -2003,13 +2003,15 @@ async def get_comparison(comparison_id: str, refresh: bool = False, google_id: s
         }
     }
 
+    status = comparison.get('status')
+
     # If already completed, return cached results unless refresh is requested
-    if comparison.get('status') == 'completed' and comparison.get('results') and not refresh:
+    if status == 'completed' and comparison.get('results') and not refresh:
         return {'results': comparison.get('results'), 'meta': meta}
 
-    if comparison.get('status') != 'ready':
+    if status not in ['ready', 'completed']:
         return {
-            'status': comparison.get('status', 'pending'),
+            'status': status or 'pending',
             'message': 'Comparison is not ready. Both users must complete login.',
             'meta': meta
         }
