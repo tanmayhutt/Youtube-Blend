@@ -60,9 +60,11 @@ echo -e "${GREEN}✅ Code up to date${NC}"
 
 # ---------- Build containers ----------
 
-echo -e "\n${YELLOW}[3/6] Building Docker images...${NC}"
-docker compose build --no-cache
-echo -e "${GREEN}✅ Images built${NC}"
+echo -e "\n${YELLOW}[3/6] Cleaning up old Docker files...${NC}"
+docker system prune -f
+
+echo -e "\n${YELLOW}[4/6] Building Docker images...${NC}"
+docker compose build
 
 # ---------- Start containers ----------
 
