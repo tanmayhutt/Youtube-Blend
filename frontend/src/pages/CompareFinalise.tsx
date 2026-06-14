@@ -15,6 +15,7 @@ import { Logo } from "@/components/Logo";
 import { Footer } from "@/components/Footer";
 import { authClient, saveTokens, clearTokens, isAuthenticated } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
+import { formatRelativeTime } from "@/lib/utils";
 
 const CompareFinalise = () => {
   const { id } = useParams();
@@ -32,13 +33,6 @@ const CompareFinalise = () => {
   const [copiedLink, setCopiedLink] = useState(false);
 
   const comparisonLink = id ? `${window.location.origin}/compare/join/${id}` : "";
-
-  const formatSyncTime = (value?: string) => {
-    if (!value) return "Unknown";
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return "Unknown";
-    return date.toLocaleString();
-  };
 
   const isStale = (value?: string, hours = 12) => {
     if (!value) return true;
@@ -139,28 +133,28 @@ const CompareFinalise = () => {
 
   const getMatchMessage = (score: number) => {
     if (score >= 80) return {
-      text: "Soulmate Alert",
-      desc: "You're basically the same person! Your YouTube tastes align perfectly. Time to start a music duo?",
+      text: "Exceptional Compatibility",
+      desc: "Your YouTube viewing habits and musical tastes are highly aligned, indicating nearly identical content preferences.",
       emoji: ""
     };
     if (score >= 60) return {
-      text: "Great Vibes",
-      desc: "You've got solid common ground here. Your playlists would probably be inseparable besties!",
+      text: "Strong Alignment",
+      desc: "You share a significant amount of common ground across multiple categories and genres.",
       emoji: ""
     };
     if (score >= 40) return {
-      text: "Interesting Mix",
-      desc: "Different flavors, same palette! You'll probably introduce each other to some gems.",
+      text: "Moderate Overlap",
+      desc: "While you have distinct preferences, there is a measurable intersection in your content libraries.",
       emoji: ""
     };
     if (score >= 20) return {
-      text: "Opposites Attract",
-      desc: "Your YouTube universes are pretty different—time for some culture swap!",
+      text: "Diverse Tastes",
+      desc: "Your profiles indicate largely different consumption habits with occasional overlapping interests.",
       emoji: ""
     };
     return {
-      text: "Plot Twist",
-      desc: "You might as well be from different YouTube galaxies! But hey, that's the fun of it.",
+      text: "Distinct Profiles",
+      desc: "Your viewing habits and musical tastes belong to completely different analytical clusters.",
       emoji: ""
     };
   };
@@ -238,21 +232,38 @@ const CompareFinalise = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur sticky top-0 z-50">
+      <header className="border-b border-white/10 bg-background/60 backdrop-blur-xl sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <Logo size={28} className="rounded" />
-              <h1 className="text-lg font-bold text-foreground">Comparison Results</h1>
+              <h1 className="text-lg font-semibold tracking-tight text-foreground/90 hidden sm:block">Comparison Analysis</h1>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={handleBackToDashboard} className="gap-2 text-sm">
-                <Home className="w-4 h-4" />
-                Dashboard
-              </Button>
-              <Button onClick={handleNewComparison} className="gap-2 text-sm">
-                New Comparison
-              </Button>
+            
+            <div className="flex items-center gap-4">
+              {comparisonMeta && (
+                <div className="hidden md:flex items-center gap-3 text-xs text-muted-foreground bg-white/5 px-4 py-1.5 rounded-full border border-white/10">
+                  <div className="flex items-center gap-1.5">
+                    <span className="opacity-60">You:</span>
+                    <span className="font-medium text-foreground/80">{formatRelativeTime(comparisonMeta.viewer?.last_synced_at)}</span>
+                  </div>
+                  <div className="w-px h-3 bg-white/20"></div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="opacity-60">Them:</span>
+                    <span className="font-medium text-foreground/80">{formatRelativeTime(comparisonMeta.other?.last_synced_at)}</span>
+                  </div>
+                </div>
+              )}
+              
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={handleBackToDashboard} className="gap-2 text-sm bg-transparent border-white/10 hover:bg-white/5">
+                  <Home className="w-4 h-4" />
+                  Dashboard
+                </Button>
+                <Button onClick={handleNewComparison} className="gap-2 text-sm">
+                  New Comparison
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -261,51 +272,40 @@ const CompareFinalise = () => {
       <main className="container mx-auto px-4 py-12">
         <div className="animate-fade-in">
           {comparisonMeta && (
-            <Card className="mb-8 p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <Card className="mb-8 p-6 bg-card/20 backdrop-blur-sm border-white/10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm text-muted-foreground">Your data last synced:</p>
-                  {isStale(comparisonMeta.viewer?.last_synced_at) && (
-                    <Badge variant="destructive">Stale</Badge>
-                  )}
-                </div>
-                <p className="text-sm font-medium text-foreground">
-                  {formatSyncTime(comparisonMeta.viewer?.last_synced_at)}
-                </p>
-                <div className="flex items-center gap-2 mt-2">
-                  <p className="text-sm text-muted-foreground">Other user last synced:</p>
-                  {isStale(comparisonMeta.other?.last_synced_at) && (
-                    <Badge variant="secondary">Possibly stale</Badge>
-                  )}
-                </div>
-                <p className="text-sm font-medium text-foreground">
-                  {formatSyncTime(comparisonMeta.other?.last_synced_at)}
+                <h3 className="text-sm font-semibold tracking-tight text-foreground/90">Data Synchronization</h3>
+                <p className="text-xs text-muted-foreground/80 max-w-xl">
+                  Compatibility metrics are based on the latest data snapshots. For the most accurate analysis, ensure both profiles are recently synchronized.
                 </p>
               </div>
-              <Button onClick={handleRefreshMyData} disabled={refreshing} className="gap-2">
+              <Button onClick={handleRefreshMyData} disabled={refreshing} variant="secondary" className="gap-2 whitespace-nowrap bg-white/10 hover:bg-white/20 text-foreground">
                 {refreshing ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                Refresh my data
+                Refresh My Snapshot
               </Button>
             </Card>
           )}
-          {/* Match Score Card with 3D Visualization */}
+          {/* Match Score Card */}
           {matchMessage && (
-            <Card className="mb-12 p-8 text-center border-red-500/30 bg-gradient-to-br from-red-500/5 via-background to-orange-500/5">
-              <div className="space-y-6">
+            <Card className="mb-12 p-10 text-center bg-card/40 backdrop-blur-md border-white/10 shadow-2xl relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent opacity-50"></div>
+              <div className="relative space-y-8">
                 <div>
-                  <h2 className="text-5xl font-bold bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent mb-3">
+                  <h2 className="text-4xl font-semibold tracking-tight text-foreground/90 mb-4">
                     {matchMessage.text}
                   </h2>
-                  <p className="text-lg text-foreground/80 max-w-2xl mx-auto leading-relaxed">
+                  <p className="text-sm text-muted-foreground/80 max-w-2xl mx-auto leading-relaxed">
                     {matchMessage.desc}
                   </p>
                 </div>
-                <div className="pt-6 border-t border-border/50">
-                  <div className="text-6xl font-bold bg-gradient-to-r from-red-600 to-orange-500 bg-clip-text text-transparent">
-                    {comparisonData.scores.overall.toFixed(1)}%
+                <div className="pt-8 border-t border-white/5">
+                  <div className="text-7xl font-light tracking-tighter text-foreground/90">
+                    {comparisonData.scores.overall.toFixed(1)}<span className="text-4xl text-muted-foreground/50">%</span>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-2">YouTube Compatibility Score</p>
-                  <div className="mt-4 h-2 bg-gradient-to-r from-red-600 to-orange-500 rounded-full w-full max-w-xs mx-auto"></div>
+                  <p className="text-xs font-medium tracking-widest uppercase text-muted-foreground/70 mt-4">Compatibility Index</p>
+                  <div className="mt-6 h-1.5 bg-white/5 rounded-full w-full max-w-sm mx-auto overflow-hidden">
+                    <div className="h-full bg-primary/80 rounded-full" style={{ width: `${comparisonData.scores.overall}%` }}></div>
+                  </div>
                 </div>
               </div>
             </Card>

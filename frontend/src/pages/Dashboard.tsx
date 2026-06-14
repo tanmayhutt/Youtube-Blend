@@ -21,6 +21,7 @@ import { Logo } from "@/components/Logo";
 import { Footer } from "@/components/Footer";
 import { authClient, clearTokens, isAuthenticated, saveTokens } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
+import { formatRelativeTime } from "@/lib/utils";
 
 const Dashboard = () => {
   const [userData, setUserData] = useState<any>(null);
@@ -265,14 +266,21 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur sticky top-0 z-50">
+      <header className="border-b border-white/10 bg-background/60 backdrop-blur-xl sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <Logo size={28} className="rounded" />
-              <h1 className="text-lg font-bold text-foreground">YouTube Blend</h1>
+              <h1 className="text-lg font-semibold tracking-tight text-foreground/90">YouTube Blend</h1>
             </div>
-            <DropdownMenu>
+            <div className="flex items-center gap-6">
+              {userData?.last_synced_at && (
+                <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
+                  <RefreshCw className="w-3 h-3 opacity-70" />
+                  <span>Synced {formatRelativeTime(userData.last_synced_at)}</span>
+                </div>
+              )}
+              <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="gap-2 text-sm">
                   {userProfile?.picture ? (
@@ -331,14 +339,15 @@ const Dashboard = () => {
 
       <main className="container mx-auto px-4 py-12">
         {/* Action Card */}
-        <Card className="mb-12 p-8 border-border/50">
-          <div className="text-center space-y-6">
-            <div className="space-y-3">
-              <h2 className="text-3xl font-bold text-foreground">Your YouTube Profile</h2>
-              <p className="text-sm text-muted-foreground">Last synced: {userData?.last_synced_at ? new Date(userData.last_synced_at).toLocaleDateString() : 'Never'}</p>
+        <Card className="mb-12 p-10 bg-card/40 backdrop-blur-md border-white/10 shadow-2xl overflow-hidden relative">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-50"></div>
+          <div className="relative text-center space-y-8">
+            <div className="space-y-2">
+              <h2 className="text-4xl font-semibold tracking-tight text-foreground/90">Your Analytical Profile</h2>
+              <p className="text-sm text-muted-foreground/80 max-w-lg mx-auto">Generate comprehensive insights into your viewing habits and synchronize your latest YouTube data.</p>
             </div>
 
-            <div className="flex gap-3 justify-center flex-wrap">
+            <div className="flex gap-4 justify-center flex-wrap">
               <Button
                 onClick={syncUserData}
                 disabled={syncing}
@@ -358,12 +367,12 @@ const Dashboard = () => {
                 )}
               </Button>
 
-              <div className="border-l border-border"></div>
+              <div className="w-px bg-white/10 hidden sm:block mx-2"></div>
 
               <div>
-                <h3 className="text-lg font-semibold text-foreground mb-4">Compare with Friends</h3>
-                <p className="text-muted-foreground max-w-2xl mx-auto mb-6">
-                  Generate a unique link to compare your YouTube preferences with friends.
+                <h3 className="text-lg font-medium text-foreground/90 mb-3">Compare Profiles</h3>
+                <p className="text-sm text-muted-foreground/80 max-w-md mx-auto mb-6">
+                  Generate a unique link to measure your YouTube taste compatibility with others.
                 </p>
 
                 {!shareLink ? (
@@ -413,40 +422,40 @@ const Dashboard = () => {
           </div>
         </Card>
 
-        <Separator className="my-8" />
+        <Separator className="my-10 bg-white/5" />
 
         {/* Quick Stats */}
         {userData && (
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold mb-4">Quick Stats</h2>
+          <div className="mb-12">
+            <h2 className="text-xl font-semibold tracking-tight mb-6 text-foreground/90">Overview</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Card className="p-4 bg-gradient-to-br from-red-500/10 to-orange-500/10 border-red-500/20">
-                <div className="text-2xl font-bold text-red-600">{userData.subscriptions?.length || 0}</div>
-                <p className="text-xs text-muted-foreground mt-2">Subscriptions</p>
+              <Card className="p-6 bg-card/20 backdrop-blur-sm border-white/10 hover:bg-card/40 transition-colors">
+                <div className="text-3xl font-light text-foreground/90">{userData.subscriptions?.length || 0}</div>
+                <p className="text-xs text-muted-foreground/70 mt-2 font-medium tracking-wide uppercase">Subscriptions</p>
               </Card>
-              <Card className="p-4 bg-gradient-to-br from-purple-500/10 to-pink-500/10 border-purple-500/20">
-                <div className="text-2xl font-bold text-purple-600">{userData.music_listened?.length || 0}</div>
-                <p className="text-xs text-muted-foreground mt-2">Music Tracks</p>
+              <Card className="p-6 bg-card/20 backdrop-blur-sm border-white/10 hover:bg-card/40 transition-colors">
+                <div className="text-3xl font-light text-foreground/90">{userData.music_listened?.length || 0}</div>
+                <p className="text-xs text-muted-foreground/70 mt-2 font-medium tracking-wide uppercase">Music Tracks</p>
               </Card>
-              <Card className="p-4 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border-blue-500/20">
-                <div className="text-2xl font-bold text-blue-600">{userData.saved_videos?.length || 0}</div>
-                <p className="text-xs text-muted-foreground mt-2">Saved Videos</p>
+              <Card className="p-6 bg-card/20 backdrop-blur-sm border-white/10 hover:bg-card/40 transition-colors">
+                <div className="text-3xl font-light text-foreground/90">{userData.saved_videos?.length || 0}</div>
+                <p className="text-xs text-muted-foreground/70 mt-2 font-medium tracking-wide uppercase">Saved Videos</p>
               </Card>
-              <Card className="p-4 bg-gradient-to-br from-green-500/10 to-emerald-500/10 border-green-500/20">
-                <div className="text-2xl font-bold text-green-600">{userData.playlists?.length || 0}</div>
-                <p className="text-xs text-muted-foreground mt-2">Playlists</p>
+              <Card className="p-6 bg-card/20 backdrop-blur-sm border-white/10 hover:bg-card/40 transition-colors">
+                <div className="text-3xl font-light text-foreground/90">{userData.playlists?.length || 0}</div>
+                <p className="text-xs text-muted-foreground/70 mt-2 font-medium tracking-wide uppercase">Playlists</p>
               </Card>
             </div>
           </div>
         )}
 
-        <Separator className="my-8" />
+        <Separator className="my-10 bg-white/5" />
 
         {/* Full-Width Navbar-Style Sections */}
         {userData && (
           <div>
-            <h2 className="text-3xl font-bold mb-12 bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent">
-              Your YouTube Universe
+            <h2 className="text-2xl font-semibold tracking-tight mb-8 text-foreground/90">
+              Detailed Analysis
             </h2>
 
             <div className="mb-8">
