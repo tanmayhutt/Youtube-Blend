@@ -8,7 +8,9 @@ export function cn(...inputs: ClassValue[]) {
 export function formatRelativeTime(dateString?: string): string {
   if (!dateString) return "Never";
   
-  const date = new Date(dateString);
+  // If the backend sends a naive datetime (e.g. "2026-06-14T10:00:00"), append 'Z' to force it to be evaluated as UTC
+  const safeDateString = dateString.endsWith('Z') || dateString.includes('+') ? dateString : `${dateString}Z`;
+  const date = new Date(safeDateString);
   if (Number.isNaN(date.getTime())) return "Unknown";
   
   const now = new Date();
