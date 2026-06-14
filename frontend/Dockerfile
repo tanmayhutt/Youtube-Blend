@@ -4,7 +4,7 @@ WORKDIR /app
 
 COPY package.json ./
 COPY bun.lockb ./
-RUN bun install --frozen-lockfile
+RUN bun install
 
 COPY . .
 
@@ -18,7 +18,6 @@ FROM oven/bun:1-alpine
 WORKDIR /app
 
 COPY package.json ./
-COPY bun.lockb ./
 COPY server.js ./
 RUN bun install --production
 
