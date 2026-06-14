@@ -25,7 +25,7 @@ YouTube Blend allows users to:
 | Backend | FastAPI (Python 3.11) + MongoDB + JWT |
 | Frontend | React 19 + TypeScript + Vite + Tailwind CSS |
 | Auth | Google OAuth 2.0 |
-| Hosting | Render (backend) • Vercel (frontend) |
+| Hosting | DigitalOcean (Docker) • Vercel (domain proxy) |
 
 ---
 
@@ -160,17 +160,119 @@ See `backend/.env.example` and `frontend/.env.example` for full configuration.
 
 ## Deployment
 
-### Render (Backend)
+### Option 1: Docker on DigitalOcean + Vercel Proxy (Recommended)
+
+Both frontend and backend run on your server. Vercel acts as a free domain proxy — no IP exposed.
+
+```
+User → youtube-blend.vercel.app → (Vercel rewrites) → Your Server
+         /api/*  →  server:8000 (backend)
+         /*      →  server:3000 (frontend)
+```
+
+#### Step 1: Set up DigitalOcean Server
+
+```bash
+# SSH into your server
+ssh root@YOUR_SERVER_IP
+
+# Install Docker (if not already installed)
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker $USER
+
+# Clone the repo
+git clone https://github.com/tanmayhutt/Youtube-Blend.git
+cd Youtube-Blend
+
+# Create .env from template
+cp .env.example .env
+nano .env   # Fill in your actual values
+```
+
+#### Step 2: Configure Environment Variables
+
+Edit `.env` with these production values:
+
+```env
+DEPLOYED_DOMAIN=https://youtube-blend.vercel.app/api
+FRONTEND_URL=https://youtube-blend.vercel.app
+VITE_API_URL=/api
+# ... plus MONGO_URI, GOOGLE_CLIENT_ID, etc.
+```
+
+#### Step 3: Update Google Cloud Console
+
+Go to [Google Cloud Console → Credentials](https://console.cloud.google.com/apis/credentials):
+
+1. Open your OAuth 2.0 Client ID
+2. Under **Authorized redirect URIs**, add:
+   ```
+   https://youtube-blend.vercel.app/api/auth/callback
+   ```
+3. Under **Authorized JavaScript origins**, add:
+   ```
+   https://youtube-blend.vercel.app
+   ```
+4. Save
+
+#### Step 4: Deploy with Docker
+
+```bash
+# One-command deploy
+./deploy.sh
+
+# Or manually:
+docker compose build
+docker compose up -d
+docker compose logs -f   # Watch logs
+```
+
+#### Step 5: Set up Vercel as Domain Proxy
+
+1. Go to [vercel.com](https://vercel.com) → Import the same GitHub repo
+2. Change **Root Directory** to `/` (repo root, NOT `frontend`)
+3. Set **Build Command** to empty (or leave blank)
+4. Set **Output Directory** to `public`
+5. Deploy — Vercel will use the root `vercel.json` which proxies all traffic to your server
+6. **Edit `vercel.json`**: Replace `YOUR_SERVER_IP` with your DigitalOcean droplet IP
+
+> **Note:** If your repo is public, your server IP will be visible in `vercel.json`. To avoid this, either keep the repo private or create a separate private repo with just the `vercel.json`.
+
+#### Step 6: Test the Full Flow
+
+1. Visit `https://youtube-blend.vercel.app`
+2. Click login → should redirect to Google OAuth
+3. After auth → should land on dashboard
+4. Generate a comparison link → share with a friend
+
+---
+
+### Option 2: Render + Vercel (Legacy)
+
+#### Render (Backend)
 1. Connect GitHub repository
 2. Set root directory to `backend`
 3. Add environment variables
 4. Deploy
 
-### Vercel (Frontend)
+#### Vercel (Frontend)
 1. Connect GitHub repository
 2. Set root directory to `frontend`
 3. Add `VITE_API_URL` environment variable
 4. Deploy
+
+---
+
+## Useful Docker Commands
+
+```bash
+docker compose logs -f            # Live logs (all services)
+docker compose logs backend       # Backend logs only
+docker compose restart            # Restart all services
+docker compose down               # Stop everything
+docker compose ps                 # Check status
+docker compose build --no-cache   # Force rebuild
+```
 
 ---
 

@@ -548,7 +548,7 @@ async def callback(code: str, state: str):
                         }
                         auth_codes.insert_one(code_doc)
 
-                        frontend = os.getenv("FRONTEND_URL", "https://blend-youtube.onrender.com")
+                        frontend = os.getenv("FRONTEND_URL", "https://youtube-blend.vercel.app")
                         final_url = f"{frontend.rstrip('/')}/auth/complete?code={auth_code}&next=/compare/finalise/{comparison_id}"
                         return RedirectResponse(url=final_url, status_code=302)
                 except Exception as e:
@@ -566,7 +566,7 @@ async def callback(code: str, state: str):
         }
         auth_codes.insert_one(code_doc)
 
-        frontend = os.getenv("FRONTEND_URL", "https://blend-youtube.onrender.com")
+        frontend = os.getenv("FRONTEND_URL", "https://youtube-blend.vercel.app")
         final_url = f"{frontend.rstrip('/')}/auth/complete?code={auth_code}"
         if state_doc.get('next'):
             final_url += f"&next={state_doc.get('next')}"
@@ -1794,7 +1794,7 @@ async def generate_comparison_link(google_id: str = Depends(verify_token)):
 
         comparison_id = generate_secure_code()
         csrf_token = secrets.token_urlsafe(32)
-        frontend = os.getenv("FRONTEND_URL", "https://blend-youtube.onrender.com")
+        frontend = os.getenv("FRONTEND_URL", "https://youtube-blend.vercel.app")
         share_link = f"{frontend.rstrip('/')}/compare/join/{comparison_id}"
 
         comparisons.insert_one({
@@ -1970,7 +1970,7 @@ async def auth_complete_fallback(code: str = None, next: str = None):
         redirect_target = validate_redirect_target(next)
 
         tokens_json = json.dumps({'access_token': token})
-        frontend = os.getenv('FRONTEND_URL', 'https://blend-youtube.onrender.com')
+        frontend = os.getenv('FRONTEND_URL', 'https://youtube-blend.vercel.app')
         frontend_safe = frontend.rstrip('/')
 
         html = f"""

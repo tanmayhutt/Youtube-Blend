@@ -4,6 +4,8 @@
 .env
 .env.local
 .env.*.local
+envs/
+youtube-blend-*.env
 
 # Backend env files
 backend/.env
