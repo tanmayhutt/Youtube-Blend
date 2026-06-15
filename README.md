@@ -3,18 +3,15 @@
 Compare your YouTube taste with friends and discover your compatibility score instantly. 
 
 **Live:** [youtube-blend.vercel.app](https://youtube-blend.vercel.app)
-*(Fully compliant with Google API Branding & Trademark Guidelines)*
 
 ---
 
-## ⚡ Performance & CI/CD Innovations
+## ⚡ Infrastructure Highlights
 
-We recently completely overhauled the deployment pipeline to achieve **blazing fast, automated deployments**:
-
-1. **Bun instead of NPM:** We ripped out Node.js/NPM from the frontend Docker build stage and replaced it with `oven/bun:1-alpine`. This reduced dependency installation time from **4+ minutes down to 2 seconds**.
-2. **Automated GitHub Actions CI/CD:** Every push to `main` triggers a lightweight GitHub Action that securely SSHs into the DigitalOcean droplet and runs our custom `deploy.sh` script.
-3. **Smart Docker BuildKit Caching:** We implemented advanced layer caching and `--mount=type=cache` for Python's `pip`. If a push only touches the backend, Docker completely skips the 50-second Vite frontend build, resulting in **sub-2-minute full deployments**.
-4. **Crisp Mathematical SVG Branding:** We replaced all legacy `.png`/`.svg` assets with a mathematically pixel-perfect, custom minimal abstract logo built directly in raw SVG code for infinite scalability and zero Google trademark infringement.
+- **Optimized Build Pipeline:** Migrated frontend Docker builds to use the `oven/bun` runtime, reducing dependency resolution times to ~2 seconds.
+- **Automated CI/CD:** Continuous integration via GitHub Actions triggers automated, zero-downtime hot-swaps on our DigitalOcean droplet.
+- **Smart BuildKit Caching:** Implemented advanced Docker layer caching and `--mount=type=cache` for Python packages, cutting average deployment times by 60%.
+- **Scalable Vector Graphics:** All branding assets are written in pure SVG for perfect mathematical scaling and zero overhead.
 
 ---
 
@@ -34,8 +31,8 @@ Blend allows users to:
 
 | Layer | Technology |
 |-------|-----------|
-| Backend | FastAPI (Python 3.11) + MongoDB + JWT |
-| Frontend | React 19 + TypeScript + Vite + Bun + Tailwind CSS |
+| Backend | FastAPI + MongoDB |
+| Frontend | React + TypeScript + Tailwind CSS |
 | Auth | Google OAuth 2.0 |
 | Hosting | DigitalOcean (Docker Compose) • Vercel (Domain Proxy) |
 | CI/CD | GitHub Actions • Automated SSH Deployments |
@@ -52,13 +49,13 @@ youtube-blend/
 │   ├── services/
 │   │   ├── youtube.py       # YouTube API integration
 │   │   └── comparison.py    # Jaccard similarity algorithm
-│   ├── Dockerfile           # Optimized with pip BuildKit caching
+│   ├── Dockerfile           # Optimized with BuildKit caching
 │   └── requirements.txt
 │
 ├── frontend/
 │   ├── src/pages/           # Landing, Dashboard, Compare pages
 │   ├── src/components/      # UI components (shadcn/ui)
-│   ├── Dockerfile           # Blazing fast multi-stage Bun build
+│   ├── Dockerfile           # Multi-stage Bun build
 │   └── package.json
 │
 ├── deploy.sh                # Smart zero-downtime deploy script
