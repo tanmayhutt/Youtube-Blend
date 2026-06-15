@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
+  <!-- Left Red Ring -->
+  <circle cx="38" cy="50" r="24" stroke="#FF3333" stroke-width="8" fill="none" />
+  <!-- Right White/Gray Ring -->
+  <circle cx="62" cy="50" r="24" stroke="#F1F5F9" stroke-width="8" fill="none" />
+  <!-- Re-draw a portion of the red ring to create an interlocking effect -->
+  <path d="M 50 29.2 A 24 24 0 0 0 38 74" stroke="#FF3333" stroke-width="8" fill="none" stroke-linecap="round" />
+</svg>

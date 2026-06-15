@@ -8,8 +8,8 @@ interface LogoProps {
 export const Logo = ({ className = "", size = 32 }: LogoProps) => {
   const [imgError, setImgError] = useState(false);
 
-  // Use logo.png
-  const logoPath = "/logo.png";
+  // Use logo.svg
+  const logoPath = "/logo.svg";
 
   const handleError = () => {
     setImgError(true);
