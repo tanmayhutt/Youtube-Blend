@@ -271,7 +271,7 @@ const Dashboard = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Logo size={28} className="rounded" />
-              <h1 className="text-lg font-semibold tracking-tight text-foreground/90">YouTube Blend</h1>
+              <h1 className="text-lg font-semibold tracking-tight text-foreground/90">Blend</h1>
             </div>
             <div className="flex items-center gap-6">
               {userData?.last_synced_at && (

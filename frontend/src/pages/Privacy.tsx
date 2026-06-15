@@ -31,7 +31,7 @@ const Privacy = () => {
           <section>
             <h2>1. Information We Collect</h2>
             <p>
-              YouTube Blend collects the following information from your Google account when you authorize our application:
+              Blend collects the following information from your Google account when you authorize our application:
             </p>
             <ul>
               <li><strong>YouTube Subscriptions:</strong> List of channels you are subscribed to</li>

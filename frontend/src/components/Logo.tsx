@@ -37,7 +37,7 @@ export const Logo = ({ className = "", size = 32 }: LogoProps) => {
   return (
     <img
       src={logoPath}
-      alt="YouTube Blend Logo"
+      alt="Blend Logo"
       className={className}
       onError={handleError}
       style={{ 

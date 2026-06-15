@@ -41,7 +41,7 @@ const Landing = () => {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Logo size={32} className="rounded" />
-            <h1 className="text-xl font-bold text-foreground">YouTube Blend</h1>
+            <h1 className="text-xl font-bold text-foreground">Blend</h1>
           </div>
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <a href="/privacy" className="hover:text-foreground transition-colors">Privacy</a>
@@ -98,7 +98,7 @@ const Landing = () => {
         {/* Features Grid */}
         <div className="py-24 border-t border-border/50">
           <div className="max-w-5xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-12 text-center">How YouTube Blend Works</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-12 text-center">How Blend Works</h2>
             <div className="grid md:grid-cols-3 gap-8">
               <FeatureCard
                 icon={Users}
