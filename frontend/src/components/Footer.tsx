@@ -1,3 +1,5 @@
+import { Heart } from "lucide-react";
+
 export const Footer = () => {
   const currentYear = new Date().getFullYear();
 
@@ -26,8 +28,8 @@ export const Footer = () => {
           {/* Social & Info */}
           <div>
             <h3 className="font-semibold text-foreground mb-3">Connect</h3>
-            <p className="text-sm text-muted-foreground">
-              Made with 💜 for YouTube fans everywhere.
+            <p className="text-sm text-muted-foreground flex items-center gap-1">
+              Made with <Heart className="w-4 h-4 text-primary fill-primary animate-pulse" /> for YouTube fans everywhere.
             </p>
           </div>
         </div>

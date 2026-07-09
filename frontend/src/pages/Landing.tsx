@@ -5,6 +5,7 @@ import { Youtube, Users, BarChart3, Lock, Zap, Loader2 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { Footer } from "@/components/Footer";
 import { initiateLogin, isAuthenticated, saveTokens } from "@/lib/auth";
+import { motion } from "framer-motion";
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -53,13 +54,18 @@ const Landing = () => {
       {/* Hero Section */}
       <main className="container mx-auto px-4">
         <div className="max-w-4xl mx-auto py-24 md:py-32">
-          <div className="text-center space-y-8">
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            className="text-center space-y-8"
+          >
             {/* Main Headline */}
             <div className="space-y-4">
               <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-foreground">
                 What's Your
                 <br />
-                <span className="bg-gradient-to-r from-red-600 to-orange-500 bg-clip-text text-transparent">YouTube Personality?</span>
+                <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">YouTube Personality?</span>
               </h1>
               <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
                 Discover how your YouTube taste aligns with friends. Get a compatibility score, find common channels, music taste, and explore what makes your viewing habits unique.
@@ -67,12 +73,16 @@ const Landing = () => {
             </div>
 
             {/* CTA Button */}
-            <div className="flex gap-4 justify-center pt-4">
+            <motion.div 
+              className="flex gap-4 justify-center pt-4"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
               <Button
                 onClick={handleLogin}
                 disabled={isLoading}
                 size="lg"
-                className="px-8 py-6 bg-red-600 hover:bg-red-700 text-white text-base rounded-lg transition-all duration-200"
+                className="px-8 py-6 bg-gradient-to-r from-primary to-accent hover:opacity-90 text-white text-base rounded-lg transition-all duration-200 shadow-glow"
               >
                 {isLoading ? (
                   <>
@@ -86,13 +96,13 @@ const Landing = () => {
                   </>
                 )}
               </Button>
-            </div>
+            </motion.div>
 
             {/* Trust Message */}
             <p className="text-sm text-muted-foreground">
               Read-only access to your YouTube data • No personal data stored • Secure OAuth 2.0
             </p>
-          </div>
+          </motion.div>
         </div>
 
         {/* Features Grid */}
@@ -145,13 +155,17 @@ const FeatureCard = ({
   title: string;
   description: string;
 }) => (
-  <div className="space-y-3">
-    <div className="w-12 h-12 rounded-lg bg-red-600/10 flex items-center justify-center">
-      <Icon className="w-6 h-6 text-red-600 dark:text-red-500" />
+  <motion.div 
+    className="space-y-3"
+    whileHover={{ y: -5 }}
+    transition={{ duration: 0.2 }}
+  >
+    <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+      <Icon className="w-6 h-6 text-primary" />
     </div>
     <h3 className="text-lg font-semibold text-foreground">{title}</h3>
     <p className="text-muted-foreground text-sm leading-relaxed">{description}</p>
-  </div>
+  </motion.div>
 );
 
 const TrustItem = ({
@@ -163,15 +177,18 @@ const TrustItem = ({
   title: string;
   description: string;
 }) => (
-  <div className="flex gap-4 p-4 rounded-lg border border-border/50 hover:border-border transition-colors">
+  <motion.div 
+    className="flex gap-4 p-4 rounded-lg border border-border/50 hover:border-primary/50 transition-colors"
+    whileHover={{ scale: 1.01 }}
+  >
     <div className="flex-shrink-0">
-      <Icon className="w-6 h-6 text-red-600 dark:text-red-500 mt-1" />
+      <Icon className="w-6 h-6 text-accent mt-1" />
     </div>
     <div>
       <h3 className="font-semibold text-foreground text-sm">{title}</h3>
       <p className="text-muted-foreground text-sm mt-1">{description}</p>
     </div>
-  </div>
+  </motion.div>
 );
 
 export default Landing;
