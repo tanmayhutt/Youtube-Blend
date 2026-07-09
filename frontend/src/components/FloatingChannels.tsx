@@ -35,7 +35,7 @@ export const FloatingChannels = ({ channels, title }: FloatingChannelsProps) => 
         {visibleChannels.map((channel: any, index: number) => (
           <div
             key={index}
-            className="channel-item transition-all duration-300 hover:scale-105 hover:shadow-lg"
+            className="channel-item transition-all duration-200 hover:translate-x-[2px] hover:translate-y-[2px]"
             style={{
               animationDelay: `${index * 0.05}s`,
             }}

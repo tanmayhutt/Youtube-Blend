@@ -340,12 +340,11 @@ const Dashboard = () => {
 
       <main className="container mx-auto px-4 py-12">
         {/* Action Card */}
-        <Card className="mb-12 p-10 bg-card/40 backdrop-blur-md border-white/10 shadow-2xl overflow-hidden relative">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-50"></div>
+        <Card className="mb-12 p-10 bg-card border-[3px] border-border shadow-[var(--shadow-card)] relative">
           <div className="relative text-center space-y-8">
             <div className="space-y-2">
-              <h2 className="text-4xl font-semibold tracking-tight text-foreground/90">Your Analytical Profile</h2>
-              <p className="text-sm text-muted-foreground/80 max-w-lg mx-auto">Generate comprehensive insights into your viewing habits and synchronize your latest YouTube data.</p>
+              <h2 className="text-4xl font-black tracking-tight text-foreground">Your Analytical Profile</h2>
+              <p className="text-sm font-bold text-muted-foreground max-w-lg mx-auto">Generate comprehensive insights into your viewing habits and synchronize your latest YouTube data.</p>
             </div>
 
             <div className="flex gap-4 justify-center flex-wrap">
@@ -428,23 +427,23 @@ const Dashboard = () => {
         {/* Quick Stats */}
         {userData && (
           <div className="mb-12">
-            <h2 className="text-xl font-semibold tracking-tight mb-6 text-foreground/90">Overview</h2>
+            <h2 className="text-2xl font-black tracking-tight mb-6 text-foreground">Overview</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Card className="p-6 bg-card/20 backdrop-blur-sm border-white/10 hover:bg-card/40 transition-colors">
-                <div className="text-3xl font-light text-foreground/90">{userData.subscriptions?.length || 0}</div>
-                <p className="text-xs text-muted-foreground/70 mt-2 font-medium tracking-wide uppercase">Subscriptions</p>
+              <Card className="p-6 bg-card border-[3px] border-border shadow-[var(--shadow-card)]">
+                <div className="text-4xl font-black text-foreground">{userData.subscriptions?.length || 0}</div>
+                <p className="text-xs text-muted-foreground mt-2 font-bold tracking-widest uppercase">Subscriptions</p>
               </Card>
-              <Card className="p-6 bg-card/20 backdrop-blur-sm border-white/10 hover:bg-card/40 transition-colors">
-                <div className="text-3xl font-light text-foreground/90">{userData.music_listened?.length || 0}</div>
-                <p className="text-xs text-muted-foreground/70 mt-2 font-medium tracking-wide uppercase">Music Tracks</p>
+              <Card className="p-6 bg-card border-[3px] border-border shadow-[var(--shadow-card)]">
+                <div className="text-4xl font-black text-foreground">{userData.music_listened?.length || 0}</div>
+                <p className="text-xs text-muted-foreground mt-2 font-bold tracking-widest uppercase">Music Tracks</p>
               </Card>
-              <Card className="p-6 bg-card/20 backdrop-blur-sm border-white/10 hover:bg-card/40 transition-colors">
-                <div className="text-3xl font-light text-foreground/90">{userData.saved_videos?.length || 0}</div>
-                <p className="text-xs text-muted-foreground/70 mt-2 font-medium tracking-wide uppercase">Saved Videos</p>
+              <Card className="p-6 bg-card border-[3px] border-border shadow-[var(--shadow-card)]">
+                <div className="text-4xl font-black text-foreground">{userData.saved_videos?.length || 0}</div>
+                <p className="text-xs text-muted-foreground mt-2 font-bold tracking-widest uppercase">Saved Videos</p>
               </Card>
-              <Card className="p-6 bg-card/20 backdrop-blur-sm border-white/10 hover:bg-card/40 transition-colors">
-                <div className="text-3xl font-light text-foreground/90">{userData.playlists?.length || 0}</div>
-                <p className="text-xs text-muted-foreground/70 mt-2 font-medium tracking-wide uppercase">Playlists</p>
+              <Card className="p-6 bg-card border-[3px] border-border shadow-[var(--shadow-card)]">
+                <div className="text-4xl font-black text-foreground">{userData.playlists?.length || 0}</div>
+                <p className="text-xs text-muted-foreground mt-2 font-bold tracking-widest uppercase">Playlists</p>
               </Card>
             </div>
           </div>
@@ -488,55 +487,51 @@ const Dashboard = () => {
               {/* Music Section */}
               {activeSection === "music" && userData.music_listened && userData.music_listened.length > 0 && (
                 <div>
-                  <div className="flex items-center gap-4 mb-6 pb-4 border-b-2 border-purple-200 dark:border-purple-900/50">
-                    <div className="p-4 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                      <Music className="w-7 h-7 text-purple-600" />
+                  <div className="flex items-center gap-4 mb-6 pb-4 border-b-[4px] border-border">
+                    <div className="p-4 bg-primary border-[3px] border-border shadow-[var(--shadow-button)]">
+                      <Music className="w-7 h-7 text-primary-foreground" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-2xl font-bold">Music Tracks</h3>
-                      <p className="text-sm text-muted-foreground">All your favorite music</p>
+                      <h3 className="text-3xl font-black uppercase">Music Tracks</h3>
+                      <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">All your favorite music</p>
                     </div>
-                    <Badge className="text-lg px-4 py-2">{userData.music_listened.length}</Badge>
+                    <Badge className="text-lg px-4 py-2 border-[3px] border-border rounded-none">{userData.music_listened.length}</Badge>
                   </div>
-                  <Card className="p-8 border-l-4 border-l-purple-600">
-                    <MusicShowcase musicTracks={userData.music_listened} />
-                  </Card>
+                  <MusicShowcase musicTracks={userData.music_listened} />
                 </div>
               )}
 
               {/* Channels Section */}
               {activeSection === "channels" && userData.subscriptions && userData.subscriptions.length > 0 && (
                 <div>
-                  <div className="flex items-center gap-4 mb-6 pb-4 border-b-2 border-red-200 dark:border-red-900/50">
-                    <div className="p-4 bg-red-100 dark:bg-red-900/30 rounded-lg">
-                      <Users className="w-7 h-7 text-red-600" />
+                  <div className="flex items-center gap-4 mb-6 pb-4 border-b-[4px] border-border">
+                    <div className="p-4 bg-primary border-[3px] border-border shadow-[var(--shadow-button)]">
+                      <Users className="w-7 h-7 text-primary-foreground" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-2xl font-bold">Your Channels</h3>
-                      <p className="text-sm text-muted-foreground">Subscriptions and channels you follow</p>
+                      <h3 className="text-3xl font-black uppercase">Your Channels</h3>
+                      <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Subscriptions and channels you follow</p>
                     </div>
-                    <Badge className="text-lg px-4 py-2">{userData.subscriptions.length}</Badge>
+                    <Badge className="text-lg px-4 py-2 border-[3px] border-border rounded-none">{userData.subscriptions.length}</Badge>
                   </div>
-                  <Card className="p-8 border-l-4 border-l-red-600">
-                    <FloatingChannels channels={userData.subscriptions} title="" />
-                  </Card>
+                  <FloatingChannels channels={userData.subscriptions} title="" />
                 </div>
               )}
 
               {/* Saved Videos Section */}
               {activeSection === "videos" && userData.saved_videos && userData.saved_videos.length > 0 && (
                 <div>
-                  <div className="flex items-center gap-4 mb-6 pb-4 border-b-2 border-blue-200 dark:border-blue-900/50">
-                    <div className="p-4 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                      <Video className="w-7 h-7 text-blue-600" />
+                  <div className="flex items-center gap-4 mb-6 pb-4 border-b-[4px] border-border">
+                    <div className="p-4 bg-primary border-[3px] border-border shadow-[var(--shadow-button)]">
+                      <Video className="w-7 h-7 text-primary-foreground" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-2xl font-bold">Saved Videos</h3>
-                      <p className="text-sm text-muted-foreground">Your library of saved videos</p>
+                      <h3 className="text-3xl font-black uppercase">Saved Videos</h3>
+                      <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Your library of saved videos</p>
                     </div>
-                    <Badge className="text-lg px-4 py-2">{userData.saved_videos.length}</Badge>
+                    <Badge className="text-lg px-4 py-2 border-[3px] border-border rounded-none">{userData.saved_videos.length}</Badge>
                   </div>
-                  <Card className="p-8 border-l-4 border-l-blue-600">
+                  <Card className="p-8 border-[3px] border-border bg-card shadow-[var(--shadow-card)]">
                     <div className="space-y-4">
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                         {userData.saved_videos
@@ -572,17 +567,17 @@ const Dashboard = () => {
               {/* Playlists Section */}
               {activeSection === "playlists" && userData.playlists && userData.playlists.length > 0 && (
                 <div>
-                  <div className="flex items-center gap-4 mb-6 pb-4 border-b-2 border-green-200 dark:border-green-900/50">
-                    <div className="p-4 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                      <List className="w-7 h-7 text-green-600" />
+                  <div className="flex items-center gap-4 mb-6 pb-4 border-b-[4px] border-border">
+                    <div className="p-4 bg-primary border-[3px] border-border shadow-[var(--shadow-button)]">
+                      <List className="w-7 h-7 text-primary-foreground" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-2xl font-bold">Your Playlists</h3>
-                      <p className="text-sm text-muted-foreground">All your created and saved playlists</p>
+                      <h3 className="text-3xl font-black uppercase">Your Playlists</h3>
+                      <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">All your created and saved playlists</p>
                     </div>
-                    <Badge className="text-lg px-4 py-2">{userData.playlists.length}</Badge>
+                    <Badge className="text-lg px-4 py-2 border-[3px] border-border rounded-none">{userData.playlists.length}</Badge>
                   </div>
-                  <Card className="p-8 border-l-4 border-l-green-600">
+                  <Card className="p-8 border-[3px] border-border bg-card shadow-[var(--shadow-card)]">
                     <div className="space-y-4">
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                         {userData.playlists
@@ -618,17 +613,17 @@ const Dashboard = () => {
               {/* Genres Section */}
               {activeSection === "genres" && uniqueGenres.size > 0 && (
                 <div>
-                  <div className="flex items-center gap-4 mb-6 pb-4 border-b-2 border-amber-200 dark:border-amber-900/50">
-                    <div className="p-4 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
-                      <Disc3 className="w-7 h-7 text-amber-600" />
+                  <div className="flex items-center gap-4 mb-6 pb-4 border-b-[4px] border-border">
+                    <div className="p-4 bg-primary border-[3px] border-border shadow-[var(--shadow-button)]">
+                      <Disc3 className="w-7 h-7 text-primary-foreground" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-2xl font-bold">Favorite Genres</h3>
-                      <p className="text-sm text-muted-foreground">Your taste across your subscriptions and saved content</p>
+                      <h3 className="text-3xl font-black uppercase">Favorite Genres</h3>
+                      <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Your taste across your subscriptions and saved content</p>
                     </div>
-                    <Badge className="text-lg px-4 py-2">{uniqueGenres.size}</Badge>
+                    <Badge className="text-lg px-4 py-2 border-[3px] border-border rounded-none">{uniqueGenres.size}</Badge>
                   </div>
-                  <Card className="p-8 border-l-4 border-l-amber-600">
+                  <Card className="p-8 border-[3px] border-border bg-card shadow-[var(--shadow-card)]">
                     <div className="space-y-4">
                       <div className="flex flex-wrap gap-3">
                         {Array.from(uniqueGenres)

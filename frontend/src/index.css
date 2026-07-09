@@ -8,41 +8,42 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 240 10% 4%;
-    --foreground: 0 0% 98%;
+    /* Background: Warm Cream */
+    --background: 43 33% 96%;
+    --foreground: 0 0% 0%;
 
-    --card: 240 10% 6%;
-    --card-foreground: 0 0% 98%;
+    --card: 43 33% 96%;
+    --card-foreground: 0 0% 0%;
 
-    --popover: 240 10% 6%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 43 33% 96%;
+    --popover-foreground: 0 0% 0%;
 
-    --primary: 280 100% 60%;
+    /* Primary: YouTube Red */
+    --primary: 0 100% 50%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 330 100% 60%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 0 0% 90%;
+    --secondary-foreground: 0 0% 0%;
 
-    --muted: 240 10% 12%;
-    --muted-foreground: 0 0% 70%;
+    --muted: 0 0% 90%;
+    --muted-foreground: 0 0% 40%;
 
-    --accent: 330 100% 60%;
+    --accent: 0 100% 50%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 100% 50%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 240 10% 15%;
-    --input: 240 10% 15%;
-    --ring: 280 100% 60%;
+    --border: 0 0% 0%;
+    --input: 0 0% 0%;
+    --ring: 0 0% 0%;
 
-    --radius: 1rem;
+    --radius: 0.25rem;
     
-    --gradient-primary: linear-gradient(135deg, hsl(280 100% 60%), hsl(330 100% 60%));
-    --gradient-dark: linear-gradient(180deg, hsl(240 10% 4%), hsl(240 10% 6%));
-    --shadow-glow: 0 0 40px hsl(280 100% 60% / 0.4);
-    --shadow-card: 0 8px 30px hsl(0 0% 0% / 0.6);
-    --transition-smooth: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    --shadow-glow: none;
+    --shadow-card: 4px 4px 0px 0px rgba(0,0,0,1);
+    --shadow-button: 2px 2px 0px 0px rgba(0,0,0,1);
+    --transition-smooth: transform 0.1s cubic-bezier(0, 0, 0.2, 1), box-shadow 0.1s cubic-bezier(0, 0, 0.2, 1);
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -55,33 +56,38 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 240 10% 4%;
-    --foreground: 0 0% 98%;
+    /* Background: Pure Black */
+    --background: 0 0% 5%;
+    --foreground: 43 33% 96%;
 
-    --card: 240 10% 6%;
-    --card-foreground: 0 0% 98%;
+    --card: 0 0% 5%;
+    --card-foreground: 43 33% 96%;
 
-    --popover: 240 10% 6%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 0 0% 5%;
+    --popover-foreground: 43 33% 96%;
 
-    --primary: 280 100% 60%;
+    --primary: 0 100% 50%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 330 100% 60%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 43 33% 96%;
 
-    --muted: 240 10% 12%;
-    --muted-foreground: 0 0% 70%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 60%;
 
-    --accent: 330 100% 60%;
+    --accent: 0 100% 50%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 100% 50%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 240 10% 15%;
-    --input: 240 10% 15%;
-    --ring: 280 100% 60%;
+    --border: 0 0% 100%;
+    --input: 0 0% 100%;
+    --ring: 0 0% 100%;
+
+    --shadow-glow: none;
+    --shadow-card: 4px 4px 0px 0px rgba(255,255,255,1);
+    --shadow-button: 2px 2px 0px 0px rgba(255,255,255,1);
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;

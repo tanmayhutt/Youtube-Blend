@@ -24,22 +24,22 @@ export const VideoCard = ({ title, thumbnailUrl, videoId, playlistId, channelId 
 
   return (
     <Card
-      className="group overflow-hidden bg-card border-border hover:border-primary cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-[0_0_20px_hsl(0_100%_50%/0.3)]"
+      className="group overflow-hidden cursor-pointer transition-all duration-200 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
       onClick={openYouTubeLink}
     >
-      <div className="relative aspect-video overflow-hidden bg-secondary">
+      <div className="relative aspect-video overflow-hidden bg-secondary border-b-[3px] border-border">
         <img
           src={thumbnailUrl || "https://via.placeholder.com/320x180?text=No+Thumbnail"}
           alt={title}
-          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+          className="w-full h-full object-cover"
           loading="lazy"
         />
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center">
-          <Play className="w-12 h-12 text-primary opacity-0 group-hover:opacity-100 transition-opacity duration-300 drop-shadow-lg" />
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-primary/20 transition-all duration-200 flex items-center justify-center">
+          <Play className="w-12 h-12 text-primary opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
         </div>
       </div>
-      <div className="p-3">
-        <p className="text-sm font-medium text-foreground line-clamp-2 group-hover:text-primary transition-colors duration-300">
+      <div className="p-3 bg-background">
+        <p className="text-sm font-black text-foreground line-clamp-2 uppercase tracking-tight">
           {title}
         </p>
       </div>

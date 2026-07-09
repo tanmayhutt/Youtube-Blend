@@ -3,7 +3,6 @@ import { VideoCard } from "./VideoCard";
 import { Music, ChevronDown, Flame } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
 
 interface MusicShowcaseProps {
   musicTracks: any[];
@@ -27,20 +26,15 @@ export const MusicShowcase = ({ musicTracks }: MusicShowcaseProps) => {
   const hiddenCount = Math.max(0, sortedTracks.length - 4);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.2 }}
-    >
-      <Card className="p-8 bg-gradient-to-br from-purple-500/10 via-pink-500/5 to-red-500/10 border-purple-500/30 space-y-6 hover:border-purple-500/50 transition-all duration-300">
+    <Card className="p-8 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="p-3 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500">
-          <Music className="w-6 h-6 text-white" />
+        <div className="p-3 bg-primary border-[3px] border-border shadow-[var(--shadow-button)]">
+          <Music className="w-6 h-6 text-primary-foreground" />
         </div>
         <div>
-          <h3 className="text-2xl font-bold text-foreground">Your Music Vibes</h3>
-          <p className="text-sm text-muted-foreground">
+          <h3 className="text-2xl font-black tracking-tight text-foreground">Your Music Vibes</h3>
+          <p className="text-sm font-bold text-muted-foreground">
             {sortedTracks.length} track{sortedTracks.length !== 1 ? "s" : ""} you vibe with
           </p>
         </div>
@@ -49,35 +43,29 @@ export const MusicShowcase = ({ musicTracks }: MusicShowcaseProps) => {
       {/* Music Tracks Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         {displayTracks.map((track, index) => (
-          <motion.div 
-            key={index} 
-            className="group"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            transition={{ type: "spring", stiffness: 400, damping: 17 }}
-          >
+          <div key={index} className="group hover:-translate-y-1 hover:translate-x-1 transition-transform">
             <VideoCard title={track.title} thumbnailUrl={track.thumbnail_url} videoId={track.video_id} />
-          </motion.div>
+          </div>
         ))}
       </div>
 
       {/* Music Stats */}
-      <div className="grid grid-cols-3 gap-4 pt-4 border-t border-purple-500/20">
+      <div className="grid grid-cols-3 gap-4 pt-4 border-t-[3px] border-border mt-4">
         <div className="text-center space-y-2">
-          <div className="text-2xl font-bold text-purple-400">{sortedTracks.length}</div>
-          <p className="text-xs text-muted-foreground">Total Tracks</p>
+          <div className="text-3xl font-black text-foreground">{sortedTracks.length}</div>
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Total Tracks</p>
         </div>
         <div className="text-center space-y-2">
-          <div className="text-2xl font-bold text-pink-400">
+          <div className="text-3xl font-black text-foreground">
             {Math.round((sortedTracks.length / 100) * 50)}h
           </div>
-          <p className="text-xs text-muted-foreground">Est. Listening</p>
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Est. Listening</p>
         </div>
         <div className="text-center space-y-2">
-          <div className="flex justify-center text-red-400">
-            <Flame className="w-8 h-8 animate-pulse text-primary fill-primary" />
+          <div className="flex justify-center text-primary">
+            <Flame className="w-8 h-8 animate-pulse fill-primary" />
           </div>
-          <p className="text-xs text-muted-foreground">Trending</p>
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Trending</p>
         </div>
       </div>
 
@@ -101,7 +89,6 @@ export const MusicShowcase = ({ musicTracks }: MusicShowcaseProps) => {
           )}
         </Button>
       )}
-      </Card>
-    </motion.div>
+    </Card>
   );
 };
