@@ -377,24 +377,25 @@ def get_cached_user_data(google_id: str, cache_validity_hours: int = 24):
         return None
 
 def get_user_cached_data_for_compare(google_id: str):
-    """Fetch cached data and last sync timestamp for comparisons (no TTL check)."""
+    """Fetch cached data, last sync timestamp, and profile for comparisons (no TTL check)."""
     try:
         if not google_id:
-            return None, None, "comparison_snapshot"
+            return None, None, "comparison_snapshot", None
 
         doc = users.find_one({'google_id': google_id})
         if not doc:
-            return None, None, "comparison_snapshot"
+            return None, None, "comparison_snapshot", None
 
         cached_data = doc.get('cached_data')
         last_synced_at = doc.get('cached_at') or doc.get('last_full_sync')
+        profile = doc.get('profile')
         if cached_data:
-            return cached_data, last_synced_at, "cached"
+            return cached_data, last_synced_at, "cached", profile
 
-        return None, last_synced_at, "comparison_snapshot"
+        return None, last_synced_at, "comparison_snapshot", profile
     except Exception:
         logger.exception("Failed to load cached data for comparison")
-        return None, None, "comparison_snapshot"
+        return None, None, "comparison_snapshot", None
 
 @app.get("/auth/login")
 async def login(next: str = None, comparison_id: str = None):
@@ -1001,18 +1002,20 @@ async def get_comparison(comparison_id: str, refresh: bool = False, google_id: s
     user1_id = comparison.get('user1_id')
     user2_id = comparison.get('user2_id')
 
-    user1_cached, user1_last_synced, user1_source = get_user_cached_data_for_compare(user1_id)
-    user2_cached, user2_last_synced, user2_source = get_user_cached_data_for_compare(user2_id)
+    user1_cached, user1_last_synced, user1_source, user1_profile = get_user_cached_data_for_compare(user1_id)
+    user2_cached, user2_last_synced, user2_source, user2_profile = get_user_cached_data_for_compare(user2_id)
 
     viewer_is_user1 = google_id == user1_id
     meta = {
         'viewer': {
             'last_synced_at': user1_last_synced if viewer_is_user1 else user2_last_synced,
-            'data_source': user1_source if viewer_is_user1 else user2_source
+            'data_source': user1_source if viewer_is_user1 else user2_source,
+            'profile': user1_profile if viewer_is_user1 else user2_profile
         },
         'other': {
             'last_synced_at': user2_last_synced if viewer_is_user1 else user1_last_synced,
-            'data_source': user2_source if viewer_is_user1 else user1_source
+            'data_source': user2_source if viewer_is_user1 else user1_source,
+            'profile': user2_profile if viewer_is_user1 else user1_profile
         }
     }
 

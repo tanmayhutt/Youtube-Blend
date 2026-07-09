@@ -3,7 +3,7 @@ import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BlendResults } from "@/components/BlendResults";
+import { CompatibilityAvatars } from "@/components/CompatibilityAvatars";
 import { ScoreCard } from "@/components/ScoreCard";
 import { ChannelCard } from "@/components/ChannelCard";
 import { VideoCard } from "@/components/VideoCard";
@@ -16,6 +16,45 @@ import { Footer } from "@/components/Footer";
 import { authClient, saveTokens, clearTokens, isAuthenticated } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { formatRelativeTime } from "@/lib/utils";
+const DataGrid = ({
+  viewerData,
+  otherData,
+  viewerLabel,
+  otherLabel,
+  renderItem,
+  emptyIcon: EmptyIcon,
+  emptyText
+}: any) => {
+  if (!viewerData?.length && !otherData?.length) {
+    return (
+      <Card className="p-12 text-center bg-card border-[3px] border-border shadow-[var(--shadow-card)]">
+        <EmptyIcon className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+        <p className="text-sm font-bold text-muted-foreground uppercase">{emptyText}</p>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      {viewerData?.length > 0 && (
+        <div>
+          <h3 className="text-xl font-black text-foreground mb-4 uppercase">{viewerLabel} ({viewerData.length})</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+            {viewerData.map(renderItem)}
+          </div>
+        </div>
+      )}
+      {otherData?.length > 0 && (
+        <div>
+          <h3 className="text-xl font-black text-foreground mb-4 uppercase">{otherLabel} ({otherData.length})</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+            {otherData.map(renderItem)}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const CompareFinalise = () => {
   const { id } = useParams();
@@ -33,14 +72,6 @@ const CompareFinalise = () => {
   const [copiedLink, setCopiedLink] = useState(false);
 
   const comparisonLink = id ? `${window.location.origin}/compare/join/${id}` : "";
-
-  const isStale = (value?: string, hours = 12) => {
-    if (!value) return true;
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return true;
-    const ageMs = Date.now() - date.getTime();
-    return ageMs > hours * 60 * 60 * 1000;
-  };
 
   const runComparison = async (forceRefresh = false) => {
     if (!id) return;
@@ -272,14 +303,14 @@ const CompareFinalise = () => {
       <main className="container mx-auto px-4 py-12">
         <div className="animate-fade-in">
           {comparisonMeta && (
-            <Card className="mb-8 p-6 bg-card/20 backdrop-blur-sm border-white/10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <Card className="mb-8 p-6 bg-card border-[3px] border-border shadow-[var(--shadow-card)] flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div className="space-y-1">
-                <h3 className="text-sm font-semibold tracking-tight text-foreground/90">Data Synchronization</h3>
-                <p className="text-xs text-muted-foreground/80 max-w-xl">
+                <h3 className="text-sm font-black tracking-tight text-foreground uppercase">Data Synchronization</h3>
+                <p className="text-xs font-bold text-muted-foreground max-w-xl">
                   Compatibility metrics are based on the latest data snapshots. For the most accurate analysis, ensure both profiles are recently synchronized.
                 </p>
               </div>
-              <Button onClick={handleRefreshMyData} disabled={refreshing} variant="secondary" className="gap-2 whitespace-nowrap bg-white/10 hover:bg-white/20 text-foreground">
+              <Button onClick={handleRefreshMyData} disabled={refreshing} variant="default" className="gap-2 whitespace-nowrap">
                 {refreshing ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                 Refresh My Snapshot
               </Button>
@@ -287,25 +318,20 @@ const CompareFinalise = () => {
           )}
           {/* Match Score Card */}
           {matchMessage && (
-            <Card className="mb-12 p-10 text-center bg-card/40 backdrop-blur-md border-white/10 shadow-2xl relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent opacity-50"></div>
+            <Card className="mb-12 p-10 text-center bg-card border-[3px] border-border shadow-[var(--shadow-card)] relative overflow-hidden">
               <div className="relative space-y-8">
+                <CompatibilityAvatars
+                  viewerProfile={comparisonMeta?.viewer?.profile}
+                  otherProfile={comparisonMeta?.other?.profile}
+                  score={comparisonData.scores.overall}
+                />
                 <div>
-                  <h2 className="text-4xl font-semibold tracking-tight text-foreground/90 mb-4">
+                  <h2 className="text-4xl font-black tracking-tight text-foreground mb-4 uppercase">
                     {matchMessage.text}
                   </h2>
-                  <p className="text-sm text-muted-foreground/80 max-w-2xl mx-auto leading-relaxed">
+                  <p className="text-sm font-bold text-muted-foreground max-w-2xl mx-auto leading-relaxed">
                     {matchMessage.desc}
                   </p>
-                </div>
-                <div className="pt-8 border-t border-white/5">
-                  <div className="text-7xl font-light tracking-tighter text-foreground/90">
-                    {comparisonData.scores.overall.toFixed(1)}<span className="text-4xl text-muted-foreground/50">%</span>
-                  </div>
-                  <p className="text-xs font-medium tracking-widest uppercase text-muted-foreground/70 mt-4">Compatibility Index</p>
-                  <div className="mt-6 h-1.5 bg-white/5 rounded-full w-full max-w-sm mx-auto overflow-hidden">
-                    <div className="h-full bg-primary/80 rounded-full" style={{ width: `${comparisonData.scores.overall}%` }}></div>
-                  </div>
                 </div>
               </div>
             </Card>
@@ -397,110 +423,50 @@ const CompareFinalise = () => {
 
             <TabsContent value="subscriptions" className="space-y-6">
               <div>
-                <h2 className="text-2xl font-bold text-foreground mb-2">Your Channels</h2>
-                <p className="text-sm text-muted-foreground mb-4">See the channels you're following and compare your viewing preferences.</p>
+                <h2 className="text-3xl font-black text-foreground mb-2 uppercase">Your Channels</h2>
+                <p className="text-sm font-bold text-muted-foreground mb-4">See the channels you're following and compare your viewing preferences.</p>
               </div>
-              {(comparisonData.subscriptions?.length > 0 || comparisonData.user_2_subscriptions?.length > 0) ? (
-                <div className="space-y-8">
-                  {comparisonData.subscriptions?.length > 0 && (
-                    <div>
-                      <h3 className="text-lg font-semibold text-foreground mb-4">Your Subscriptions ({comparisonData.subscriptions.length})</h3>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                        {comparisonData.subscriptions.map((sub: any, index: number) => (
-                          <ChannelCard key={index} title={sub.title} logoUrl={sub.logo_url} channelId={sub.channel_id} />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {comparisonData.user_2_subscriptions?.length > 0 && (
-                    <div>
-                      <h3 className="text-lg font-semibold text-foreground mb-4">Their Subscriptions ({comparisonData.user_2_subscriptions.length})</h3>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                        {comparisonData.user_2_subscriptions.map((sub: any, index: number) => (
-                          <ChannelCard key={index} title={sub.title} logoUrl={sub.logo_url} channelId={sub.channel_id} />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <Card className="p-12 text-center">
-                  <TrendingUp className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground text-sm">No subscription data available</p>
-                </Card>
-              )}
+              <DataGrid
+                viewerData={comparisonData.subscriptions}
+                otherData={comparisonData.user_2_subscriptions}
+                viewerLabel="Your Subscriptions"
+                otherLabel="Their Subscriptions"
+                emptyIcon={TrendingUp}
+                emptyText="No subscription data available"
+                renderItem={(sub: any, index: number) => <ChannelCard key={index} title={sub.title} logoUrl={sub.logo_url} channelId={sub.channel_id} />}
+              />
             </TabsContent>
 
             <TabsContent value="videos" className="space-y-6">
               <div>
-                <h2 className="text-2xl font-bold text-foreground mb-2">Your Saved Videos</h2>
-                <p className="text-sm text-muted-foreground mb-4">Videos you've saved and loved over time.</p>
+                <h2 className="text-3xl font-black text-foreground mb-2 uppercase">Your Saved Videos</h2>
+                <p className="text-sm font-bold text-muted-foreground mb-4">Videos you've saved and loved over time.</p>
               </div>
-              {(comparisonData.saved_videos?.length > 0 || comparisonData.user_2_saved_videos?.length > 0) ? (
-                <div className="space-y-8">
-                  {comparisonData.saved_videos?.length > 0 && (
-                    <div>
-                      <h3 className="text-lg font-semibold text-foreground mb-4">Your Saved Videos ({comparisonData.saved_videos.length})</h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        {comparisonData.saved_videos.map((video: any, index: number) => (
-                          <VideoCard key={index} title={video.title} thumbnailUrl={video.thumbnail_url} videoId={video.video_id} />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {comparisonData.user_2_saved_videos?.length > 0 && (
-                    <div>
-                      <h3 className="text-lg font-semibold text-foreground mb-4">Their Saved Videos ({comparisonData.user_2_saved_videos.length})</h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        {comparisonData.user_2_saved_videos.map((video: any, index: number) => (
-                          <VideoCard key={index} title={video.title} thumbnailUrl={video.thumbnail_url} videoId={video.video_id} />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <Card className="p-12 text-center">
-                  <Video className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground text-sm">No saved videos available</p>
-                </Card>
-              )}
+              <DataGrid
+                viewerData={comparisonData.saved_videos}
+                otherData={comparisonData.user_2_saved_videos}
+                viewerLabel="Your Saved Videos"
+                otherLabel="Their Saved Videos"
+                emptyIcon={Video}
+                emptyText="No saved videos available"
+                renderItem={(video: any, index: number) => <VideoCard key={index} title={video.title} thumbnailUrl={video.thumbnail_url} videoId={video.video_id} />}
+              />
             </TabsContent>
 
             <TabsContent value="music" className="space-y-6">
               <div>
-                <h2 className="text-2xl font-bold text-foreground mb-2">Your Music Taste</h2>
-                <p className="text-sm text-muted-foreground mb-4">The most-played music from your collection, sorted by listen count.</p>
+                <h2 className="text-3xl font-black text-foreground mb-2 uppercase">Your Music Taste</h2>
+                <p className="text-sm font-bold text-muted-foreground mb-4">The most-played music from your collection, sorted by listen count.</p>
               </div>
-              {(comparisonData.music_listened?.length > 0 || comparisonData.user_2_music_listened?.length > 0) ? (
-                <div className="space-y-8">
-                  {comparisonData.music_listened?.length > 0 && (
-                    <div>
-                      <h3 className="text-lg font-semibold text-foreground mb-4">Your Music ({comparisonData.music_listened.length})</h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        {comparisonData.music_listened.map((music: any, index: number) => (
-                          <VideoCard key={index} title={music.title} thumbnailUrl={music.thumbnail_url} videoId={music.video_id} />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {comparisonData.user_2_music_listened?.length > 0 && (
-                    <div>
-                      <h3 className="text-lg font-semibold text-foreground mb-4">Their Music ({comparisonData.user_2_music_listened.length})</h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        {comparisonData.user_2_music_listened.map((music: any, index: number) => (
-                          <VideoCard key={index} title={music.title} thumbnailUrl={music.thumbnail_url} videoId={music.video_id} />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <Card className="p-12 text-center">
-                  <Music className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground text-sm">No music data available</p>
-                </Card>
-              )}
+              <DataGrid
+                viewerData={comparisonData.music_listened}
+                otherData={comparisonData.user_2_music_listened}
+                viewerLabel="Your Music"
+                otherLabel="Their Music"
+                emptyIcon={Music}
+                emptyText="No music data available"
+                renderItem={(music: any, index: number) => <VideoCard key={index} title={music.title} thumbnailUrl={music.thumbnail_url} videoId={music.video_id} />}
+              />
             </TabsContent>
 
             <TabsContent value="genres" className="space-y-8">
