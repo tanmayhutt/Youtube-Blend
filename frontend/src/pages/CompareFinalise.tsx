@@ -18,6 +18,8 @@ import { Circle, Squiggle, Star, Pill } from "@/components/Geometry";
 import { authClient, saveTokens, clearTokens, isAuthenticated } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { formatRelativeTime } from "@/lib/utils";
+import confetti from "canvas-confetti";
+
 const DataGrid = ({
   viewerData,
   otherData,
@@ -88,6 +90,16 @@ const CompareFinalise = () => {
         setComparisonData(response.data.results);
         setComparisonStatus("completed");
         setStatusMessage(null);
+        
+        // Massive confetti burst for seeing results!
+        setTimeout(() => {
+          confetti({
+            particleCount: 150,
+            spread: 100,
+            origin: { y: 0.5 },
+            colors: ['#FF0000', '#000000', '#FFFFFF']
+          });
+        }, 500);
       } else if (response.data?.status) {
         setComparisonData(null);
         setComparisonStatus(response.data.status);

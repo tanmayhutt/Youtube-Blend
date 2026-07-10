@@ -24,6 +24,7 @@ import { Circle, Squiggle, Star, Pill } from "@/components/Geometry";
 import { authClient, clearTokens, isAuthenticated, saveTokens } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { formatRelativeTime } from "@/lib/utils";
+import confetti from "canvas-confetti";
 
 const Dashboard = () => {
   const [userData, setUserData] = useState<any>(null);
@@ -55,6 +56,14 @@ const Dashboard = () => {
         video_genres: response.data.video_genres,
         playlists: response.data.playlists,
         last_synced_at: response.data.last_synced_at,
+      });
+
+      // Confetti burst for fun!
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#FF0000', '#000000', '#FFFFFF']
       });
 
       // Show warning if quota exceeded
@@ -172,6 +181,23 @@ const Dashboard = () => {
     try {
       const response = await authClient.get("/compare/generate_link");
       setShareLink(response.data.link);
+      
+      // Confetti from the sides!
+      confetti({
+        particleCount: 50,
+        angle: 60,
+        spread: 55,
+        origin: { x: 0 },
+        colors: ['#FF0000', '#000000']
+      });
+      confetti({
+        particleCount: 50,
+        angle: 120,
+        spread: 55,
+        origin: { x: 1 },
+        colors: ['#FF0000', '#000000']
+      });
+
       toast({
         title: "Link Generated!",
         description: "Share this link with a friend to compare your YouTube tastes",

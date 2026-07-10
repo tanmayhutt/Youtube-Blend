@@ -106,6 +106,10 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    cursor: crosshair;
+  }
+  a, button, [role="button"], input[type="submit"], input[type="button"] {
+    cursor: pointer;
   }
 }
 
@@ -142,7 +146,36 @@ All colors MUST be HSL.
     100% { transform: translateX(-100%); }
   }
 
+  @keyframes float {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-15px) rotate(5deg); }
+  }
+
+  @keyframes pop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+  }
+
   .animate-marquee {
     animation: marquee 20s linear infinite;
+  }
+  
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+  
+  .animate-float-delayed {
+    animation: float 6s ease-in-out 3s infinite;
+  }
+
+  .animate-pop {
+    animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  /* Satisfying Button Click / Card Press */
+  .active-push:active {
+    transform: translate(4px, 4px) !important;
+    box-shadow: 0px 0px 0px 0px rgba(0,0,0,1) !important;
   }
 }
