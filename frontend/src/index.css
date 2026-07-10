@@ -41,8 +41,8 @@ All colors MUST be HSL.
     --radius: 0.25rem;
     
     --shadow-glow: none;
-    --shadow-card: 4px 4px 0px 0px rgba(0,0,0,1);
-    --shadow-button: 2px 2px 0px 0px rgba(0,0,0,1);
+    --shadow-card: 8px 8px 0px 0px rgba(0,0,0,1);
+    --shadow-button: 4px 4px 0px 0px rgba(0,0,0,1);
     --transition-smooth: transform 0.1s cubic-bezier(0, 0, 0.2, 1), box-shadow 0.1s cubic-bezier(0, 0, 0.2, 1);
 
     --sidebar-background: 0 0% 98%;
@@ -86,8 +86,8 @@ All colors MUST be HSL.
     --ring: 0 0% 100%;
 
     --shadow-glow: none;
-    --shadow-card: 4px 4px 0px 0px rgba(255,255,255,1);
-    --shadow-button: 2px 2px 0px 0px rgba(255,255,255,1);
+    --shadow-card: 8px 8px 0px 0px rgba(255,255,255,1);
+    --shadow-button: 4px 4px 0px 0px rgba(255,255,255,1);
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -106,5 +106,43 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  .bg-halftone {
+    background-image: radial-gradient(hsl(var(--foreground)/0.15) 2px, transparent 2px);
+    background-size: 20px 20px;
+  }
+  
+  .bg-grid-pattern {
+    background-image: linear-gradient(hsl(var(--foreground)/0.1) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--foreground)/0.1) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  .text-outline {
+    text-shadow: 
+      -2px -2px 0 hsl(var(--foreground)),
+       2px -2px 0 hsl(var(--foreground)),
+      -2px  2px 0 hsl(var(--foreground)),
+       2px  2px 0 hsl(var(--foreground));
+  }
+  
+  .text-outline-red {
+    text-shadow: 
+      -2px -2px 0 hsl(var(--primary)),
+       2px -2px 0 hsl(var(--primary)),
+      -2px  2px 0 hsl(var(--primary)),
+       2px  2px 0 hsl(var(--primary));
+  }
+
+  @keyframes marquee {
+    0% { transform: translateX(0%); }
+    100% { transform: translateX(-100%); }
+  }
+
+  .animate-marquee {
+    animation: marquee 20s linear infinite;
   }
 }

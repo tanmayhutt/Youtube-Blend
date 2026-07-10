@@ -19,6 +19,8 @@ import { MusicShowcase } from "@/components/MusicShowcase";
 import { Youtube, Link as LinkIcon, LogOut, Loader2, Copy, Check, TrendingUp, Video, Music, List, ChevronDown, RefreshCw, Users, Disc3, Settings } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { Footer } from "@/components/Footer";
+import { Marquee } from "@/components/Marquee";
+import { Circle, Squiggle, Star, Pill } from "@/components/Geometry";
 import { authClient, clearTokens, isAuthenticated, saveTokens } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { formatRelativeTime } from "@/lib/utils";
@@ -264,9 +266,9 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background bg-halftone relative overflow-hidden">
       {/* Header */}
-      <header className="border-b border-white/10 bg-background/60 backdrop-blur-xl sticky top-0 z-50">
+      <header className="border-b-[4px] border-border bg-card relative z-50 shadow-[var(--shadow-card)]">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -338,13 +340,18 @@ const Dashboard = () => {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-12">
+      <Marquee text="DASHBOARD • ANALYZE YOUR TASTE" className="bg-primary text-primary-foreground py-3 border-y-[4px] border-border rotate-[1deg] w-[105%] -ml-[2.5%] mt-4 shadow-[var(--shadow-card)]" />
+
+      <main className="container mx-auto px-4 py-12 relative z-10">
+        <Star className="top-10 right-10 text-background hidden md:block z-0" />
+        <Circle className="bottom-40 left-10 hidden lg:block z-0" />
+
         {/* Action Card */}
-        <Card className="mb-12 p-10 bg-card border-[3px] border-border shadow-[var(--shadow-card)] relative">
-          <div className="relative text-center space-y-8">
+        <Card className="mb-12 p-10 bg-card border-[4px] border-border shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] relative rotate-[-1deg] hover:rotate-0 transition-transform">
+          <div className="relative text-center space-y-8 z-10">
             <div className="space-y-2">
-              <h2 className="text-4xl font-black tracking-tight text-foreground">Your Analytical Profile</h2>
-              <p className="text-sm font-bold text-muted-foreground max-w-lg mx-auto">Generate comprehensive insights into your viewing habits and synchronize your latest YouTube data.</p>
+              <h2 className="text-5xl md:text-6xl font-black tracking-tight text-foreground uppercase text-outline text-background inline-block -rotate-2">Your Profile</h2>
+              <p className="text-lg font-bold text-foreground/80 max-w-lg mx-auto bg-white/90 border-[2px] border-border p-3 rotate-1 shadow-[4px_4px_0_0_rgba(0,0,0,1)] inline-block mt-4">Generate comprehensive insights into your viewing habits and synchronize your latest YouTube data.</p>
             </div>
 
             <div className="flex gap-4 justify-center flex-wrap">
@@ -426,40 +433,42 @@ const Dashboard = () => {
 
         {/* Quick Stats */}
         {userData && (
-          <div className="mb-12">
-            <h2 className="text-2xl font-black tracking-tight mb-6 text-foreground">Overview</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Card className="p-6 bg-card border-[3px] border-border shadow-[var(--shadow-card)]">
-                <div className="text-4xl font-black text-foreground">{userData.subscriptions?.length || 0}</div>
-                <p className="text-xs text-muted-foreground mt-2 font-bold tracking-widest uppercase">Subscriptions</p>
+          <div className="mb-12 relative">
+            <Squiggle className="top-10 right-40 hidden md:block z-0" />
+            <h2 className="text-4xl font-black tracking-tight mb-8 text-foreground uppercase border-b-[4px] border-border inline-block pb-2">Overview</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <Card className="p-6 bg-card border-[4px] border-border shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rotate-2 hover:-rotate-1 hover:translate-y-1 transition-all z-10">
+                <div className="text-5xl font-black text-foreground">{userData.subscriptions?.length || 0}</div>
+                <p className="text-sm text-foreground mt-2 font-bold tracking-widest uppercase bg-primary text-primary-foreground inline-block px-2 py-1">Subscriptions</p>
               </Card>
-              <Card className="p-6 bg-card border-[3px] border-border shadow-[var(--shadow-card)]">
-                <div className="text-4xl font-black text-foreground">{userData.music_listened?.length || 0}</div>
-                <p className="text-xs text-muted-foreground mt-2 font-bold tracking-widest uppercase">Music Tracks</p>
+              <Card className="p-6 bg-card border-[4px] border-border shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] -rotate-2 hover:rotate-1 hover:translate-y-1 transition-all z-10">
+                <div className="text-5xl font-black text-foreground">{userData.music_listened?.length || 0}</div>
+                <p className="text-sm text-foreground mt-2 font-bold tracking-widest uppercase bg-secondary inline-block px-2 py-1">Music Tracks</p>
               </Card>
-              <Card className="p-6 bg-card border-[3px] border-border shadow-[var(--shadow-card)]">
-                <div className="text-4xl font-black text-foreground">{userData.saved_videos?.length || 0}</div>
-                <p className="text-xs text-muted-foreground mt-2 font-bold tracking-widest uppercase">Saved Videos</p>
+              <Card className="p-6 bg-card border-[4px] border-border shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rotate-1 hover:-rotate-1 hover:translate-y-1 transition-all z-10">
+                <div className="text-5xl font-black text-foreground">{userData.saved_videos?.length || 0}</div>
+                <p className="text-sm text-foreground mt-2 font-bold tracking-widest uppercase bg-primary text-primary-foreground inline-block px-2 py-1">Saved Videos</p>
               </Card>
-              <Card className="p-6 bg-card border-[3px] border-border shadow-[var(--shadow-card)]">
-                <div className="text-4xl font-black text-foreground">{userData.playlists?.length || 0}</div>
-                <p className="text-xs text-muted-foreground mt-2 font-bold tracking-widest uppercase">Playlists</p>
+              <Card className="p-6 bg-card border-[4px] border-border shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] -rotate-1 hover:rotate-1 hover:translate-y-1 transition-all z-10">
+                <div className="text-5xl font-black text-foreground">{userData.playlists?.length || 0}</div>
+                <p className="text-sm text-foreground mt-2 font-bold tracking-widest uppercase bg-secondary inline-block px-2 py-1">Playlists</p>
               </Card>
             </div>
           </div>
         )}
 
-        <Separator className="my-10 bg-white/5" />
+        <Marquee text="EXPLORE YOUR DATA • ANALYZE" className="bg-primary text-primary-foreground py-2 border-y-[4px] border-border rotate-[-1deg] w-[105%] -ml-[2.5%] my-12 shadow-[var(--shadow-card)]" />
 
         {/* Full-Width Navbar-Style Sections */}
         {userData && (
-          <div>
-            <h2 className="text-2xl font-semibold tracking-tight mb-8 text-foreground/90">
+          <div className="relative mt-8">
+            <Pill className="top-0 right-0 hidden md:block z-0" />
+            <h2 className="text-4xl font-black tracking-tight mb-8 text-foreground uppercase border-b-[4px] border-border inline-block pb-2">
               Detailed Analysis
             </h2>
 
-            <div className="mb-8">
-              <div className="flex gap-2 overflow-x-auto pb-3 border-b border-border/60">
+            <div className="mb-12">
+              <div className="flex gap-4 overflow-x-auto pb-6 border-b-[4px] border-border/60">
                 {navSections.map((section) => {
                   const Icon = section.icon;
                   const isActive = activeSection === section.key;

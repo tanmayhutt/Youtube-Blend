@@ -13,6 +13,8 @@ import { MusicShowcase } from "@/components/MusicShowcase";
 import { Youtube, TrendingUp, Music, Video, Home, Loader2, List, ChevronDown } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { Footer } from "@/components/Footer";
+import { Marquee } from "@/components/Marquee";
+import { Circle, Squiggle, Star, Pill } from "@/components/Geometry";
 import { authClient, saveTokens, clearTokens, isAuthenticated } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { formatRelativeTime } from "@/lib/utils";
@@ -261,9 +263,9 @@ const CompareFinalise = () => {
     : null;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background bg-halftone relative overflow-hidden">
       {/* Header */}
-      <header className="border-b border-white/10 bg-background/60 backdrop-blur-xl sticky top-0 z-50">
+      <header className="border-b-[4px] border-border bg-card relative z-50 shadow-[var(--shadow-card)]">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -300,8 +302,13 @@ const CompareFinalise = () => {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-12">
-        <div className="animate-fade-in">
+      <Marquee text="BLEND YOUR TASTE • DISCOVER YOUR MATCH" className="bg-primary text-primary-foreground py-3 border-y-[4px] border-border rotate-[-1deg] w-[105%] -ml-[2.5%] mt-4 shadow-[var(--shadow-card)] relative z-20" />
+
+      <main className="container mx-auto px-4 py-12 relative z-10">
+        <Star className="top-20 left-10 text-background hidden md:block z-0" />
+        <Circle className="bottom-40 right-10 hidden lg:block z-0" />
+        
+        <div className="animate-fade-in relative z-10">
           {comparisonMeta && (
             <Card className="mb-8 p-6 bg-card border-[3px] border-border shadow-[var(--shadow-card)] flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div className="space-y-1">
@@ -318,18 +325,19 @@ const CompareFinalise = () => {
           )}
           {/* Match Score Card */}
           {matchMessage && (
-            <Card className="mb-12 p-10 text-center bg-card border-[3px] border-border shadow-[var(--shadow-card)] relative overflow-hidden">
-              <div className="relative space-y-8">
+            <Card className="mb-12 p-10 text-center bg-card border-[4px] border-border shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] relative overflow-visible rotate-1 hover:rotate-0 transition-transform mt-8">
+              <Squiggle className="-top-12 -right-12 hidden md:block z-20" />
+              <div className="relative space-y-8 z-10">
                 <CompatibilityAvatars
                   viewerProfile={comparisonMeta?.viewer?.profile}
                   otherProfile={comparisonMeta?.other?.profile}
                   score={comparisonData.scores.overall}
                 />
                 <div>
-                  <h2 className="text-4xl font-black tracking-tight text-foreground mb-4 uppercase">
+                  <h2 className="text-5xl md:text-6xl font-black tracking-tight text-foreground mb-4 uppercase text-outline text-background inline-block -rotate-1">
                     {matchMessage.text}
                   </h2>
-                  <p className="text-sm font-bold text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+                  <p className="text-lg font-bold text-foreground/80 max-w-2xl mx-auto leading-relaxed bg-white/90 border-[2px] border-border p-4 shadow-[4px_4px_0_0_rgba(0,0,0,1)] rotate-1 mt-4">
                     {matchMessage.desc}
                   </p>
                 </div>
