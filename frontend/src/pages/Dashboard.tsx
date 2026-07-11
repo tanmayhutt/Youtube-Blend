@@ -47,7 +47,7 @@ const Dashboard = () => {
     setSyncing(true);
     try {
       const response = await authClient.post("/data/sync");
-      console.log(`✅ ${response.data.sync_type} sync completed`);
+      console.log(`[SYNC] ${response.data.sync_type} sync completed`);
       setUserData({
         subscriptions: response.data.subscriptions,
         subscription_genres: response.data.subscription_genres,
@@ -69,7 +69,7 @@ const Dashboard = () => {
       // Show warning if quota exceeded
       if (response.data.warning === 'quotaExceeded') {
         toast({
-          title: "⚠️ API Quota Exceeded",
+          title: "API Quota Exceeded",
           description: response.data.message,
           variant: "destructive",
         });
@@ -80,7 +80,7 @@ const Dashboard = () => {
         });
       }
     } catch (error: any) {
-      console.error("❌ Error syncing data:", error);
+      console.error("[ERROR] Error syncing data:", error);
       toast({
         title: "Sync Failed",
         description: error.response?.data?.detail || "Failed to sync your YouTube data",
@@ -100,17 +100,17 @@ const Dashboard = () => {
     const refreshToken = urlParams.get("refresh_token");
 
     if (accessToken && refreshToken) {
-      console.log("✅ Tokens found in URL, saving to localStorage");
+      console.log("[AUTH] Tokens found in URL, saving to localStorage");
       saveTokens({ access_token: accessToken, refresh_token: refreshToken });
       // Clean up URL
       window.history.replaceState({}, document.title, "/dashboard");
-      console.log("✅ URL cleaned, tokens saved");
+      console.log("[AUTH] URL cleaned, tokens saved");
     } else {
-      console.log("ℹ️ No tokens in URL params");
+      console.log("[AUTH] No tokens in URL params");
     }
 
     if (!isAuthenticated()) {
-      console.log("❌ Not authenticated, redirecting to landing page");
+      console.log("[AUTH] Not authenticated, redirecting to landing page");
       toast({
         title: "Authentication Required",
         description: "Please log in to continue",
@@ -120,33 +120,33 @@ const Dashboard = () => {
       return;
     }
 
-    console.log("✅ User authenticated, checking cached data");
+    console.log("[AUTH] User authenticated, checking cached data");
 
     const fetchData = async () => {
       try {
         const response = await authClient.get("/data/me");
-        console.log("✅ Data response received", { cached: response.data.cached });
+        console.log("[DATA] Data response received", { cached: response.data.cached });
         setUserProfile(response.data.profile || null);
         setUserId(response.data.user_id || null);
 
         // If no cached data, immediately trigger full sync
         if (!response.data.cached) {
-          console.log("⏳ No cached data found, doing FULL sync from YouTube...");
+          console.log("[SYNC] No cached data found, doing FULL sync from YouTube...");
           setLoading(false);
           await syncUserData();
         } else {
           // Set cached data and show it immediately
-          console.log("✅ Showing cached data");
+          console.log("[DATA] Showing cached data");
           setUserData(response.data);
           setLoading(false);
 
           // QUOTA OPTIMIZATION: Removed automatic background sync
           // Users can manually click "Refresh" button if they want fresh data
           // This prevents quota waste from repeated auto-syncs
-          console.log("💡 Background sync disabled to conserve API quota. Click 'Refresh' to sync manually.");
+          console.log("[INFO] Background sync disabled to conserve API quota. Click 'Refresh' to sync manually.");
         }
       } catch (error: any) {
-        console.error("❌ Error fetching user data:", error);
+        console.error("[ERROR] Error fetching user data:", error);
         setLoading(false);
         toast({
           title: "Error",

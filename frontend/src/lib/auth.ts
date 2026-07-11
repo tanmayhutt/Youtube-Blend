@@ -85,19 +85,19 @@ export const isAuthenticated = (): boolean => {
 };
 
 export const initiateLogin = async () => {
-  console.log("🚀 Initiating login with backend:", API_BASE);
+  console.log("Initiating login with backend:", API_BASE);
   try {
     const response = await axios.get(`${API_BASE}/auth/login`);
-    console.log("✅ Login endpoint response:", response.data);
+    console.log("Login endpoint response:", response.data);
     if (response.data.url) {
       // State is managed server-side, just redirect
-      console.log("🔄 Redirecting to Google OAuth:", response.data.url);
+      console.log("Redirecting to Google OAuth:", response.data.url);
       window.location.href = response.data.url;
     } else {
-      console.error("❌ Invalid response from /auth/login:", response.data);
+      console.error("Invalid response from /auth/login:", response.data);
     }
   } catch (error) {
-    console.error("❌ Error initiating login:", error);
+    console.error("Error initiating login:", error);
     throw error;
   }
 };
