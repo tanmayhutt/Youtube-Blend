@@ -366,18 +366,18 @@ const Dashboard = () => {
         </div>
       </header>
 
-      <Marquee text="DASHBOARD • ANALYZE YOUR TASTE" className="bg-primary text-primary-foreground py-3 border-y-[4px] border-border rotate-[1deg] w-[105%] -ml-[2.5%] mt-4 shadow-[var(--shadow-card)]" />
+      <Marquee text="DASHBOARD • ANALYZE YOUR TASTE" className="bg-primary text-primary-foreground py-3 border-y-[4px] border-border w-[105%] -ml-[2.5%] mt-4 shadow-[var(--shadow-card)]" />
 
       <main className="container mx-auto px-4 py-12 relative z-10">
         <Star className="top-10 right-10 text-background hidden md:block z-0" />
         <Circle className="bottom-40 left-10 hidden lg:block z-0" />
 
         {/* Action Card */}
-        <Card className="mb-12 p-10 bg-card border-[4px] border-border shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] relative rotate-[-1deg] hover:rotate-0 transition-transform">
+        <Card className="mb-12 p-10 bg-card border-[4px] border-border shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] relative transition-transform">
           <div className="relative text-center space-y-8 z-10">
             <div className="space-y-2">
-              <h2 className="text-5xl md:text-6xl font-black tracking-tight text-foreground uppercase text-outline text-background inline-block -rotate-2">Your Profile</h2>
-              <p className="text-lg font-bold text-foreground/80 max-w-lg mx-auto bg-white/90 border-[2px] border-border p-3 rotate-1 shadow-[4px_4px_0_0_rgba(0,0,0,1)] inline-block mt-4">Generate comprehensive insights into your viewing habits and synchronize your latest YouTube data.</p>
+              <h2 className="text-5xl md:text-6xl font-black tracking-tight text-foreground uppercase text-outline text-background inline-block">Your Profile</h2>
+              <p className="text-lg font-bold text-foreground/80 max-w-lg mx-auto bg-white/90 border-[2px] border-border p-3 shadow-[4px_4px_0_0_rgba(0,0,0,1)] inline-block mt-4">Generate comprehensive insights into your viewing habits and synchronize your latest YouTube data.</p>
             </div>
 
             <div className="flex gap-4 justify-center flex-wrap">
@@ -463,19 +463,19 @@ const Dashboard = () => {
             <Squiggle className="top-10 right-40 hidden md:block z-0" />
             <h2 className="text-4xl font-black tracking-tight mb-8 text-foreground uppercase border-b-[4px] border-border inline-block pb-2">Overview</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              <Card className="p-6 bg-card border-[4px] border-border shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rotate-2 hover:-rotate-1 hover:translate-y-1 transition-all z-10">
+              <Card className="p-6 bg-card border-[4px] border-border shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-y-1 hover:shadow-[4px_4px_0_0_rgba(0,0,0,1)] transition-all z-10">
                 <div className="text-5xl font-black text-foreground">{userData.subscriptions?.length || 0}</div>
                 <p className="text-sm text-foreground mt-2 font-bold tracking-widest uppercase bg-primary text-primary-foreground inline-block px-2 py-1">Subscriptions</p>
               </Card>
-              <Card className="p-6 bg-card border-[4px] border-border shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] -rotate-2 hover:rotate-1 hover:translate-y-1 transition-all z-10">
+              <Card className="p-6 bg-card border-[4px] border-border shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-y-1 hover:shadow-[4px_4px_0_0_rgba(0,0,0,1)] transition-all z-10">
                 <div className="text-5xl font-black text-foreground">{userData.music_listened?.length || 0}</div>
                 <p className="text-sm text-foreground mt-2 font-bold tracking-widest uppercase bg-secondary inline-block px-2 py-1">Music Tracks</p>
               </Card>
-              <Card className="p-6 bg-card border-[4px] border-border shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rotate-1 hover:-rotate-1 hover:translate-y-1 transition-all z-10">
+              <Card className="p-6 bg-card border-[4px] border-border shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-y-1 hover:shadow-[4px_4px_0_0_rgba(0,0,0,1)] transition-all z-10">
                 <div className="text-5xl font-black text-foreground">{userData.saved_videos?.length || 0}</div>
                 <p className="text-sm text-foreground mt-2 font-bold tracking-widest uppercase bg-primary text-primary-foreground inline-block px-2 py-1">Saved Videos</p>
               </Card>
-              <Card className="p-6 bg-card border-[4px] border-border shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] -rotate-1 hover:rotate-1 hover:translate-y-1 transition-all z-10">
+              <Card className="p-6 bg-card border-[4px] border-border shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-y-1 hover:shadow-[4px_4px_0_0_rgba(0,0,0,1)] transition-all z-10">
                 <div className="text-5xl font-black text-foreground">{userData.playlists?.length || 0}</div>
                 <p className="text-sm text-foreground mt-2 font-bold tracking-widest uppercase bg-secondary inline-block px-2 py-1">Playlists</p>
               </Card>
@@ -483,7 +483,7 @@ const Dashboard = () => {
           </div>
         )}
 
-        <Marquee text="EXPLORE YOUR DATA • ANALYZE" className="bg-primary text-primary-foreground py-2 border-y-[4px] border-border rotate-[-1deg] w-[105%] -ml-[2.5%] my-12 shadow-[var(--shadow-card)]" />
+        <Marquee text="EXPLORE YOUR DATA • ANALYZE" className="bg-primary text-primary-foreground py-2 border-y-[4px] border-border w-[105%] -ml-[2.5%] my-12 shadow-[var(--shadow-card)]" />
 
         {/* Full-Width Navbar-Style Sections */}
         {userData && (

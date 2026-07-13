@@ -314,7 +314,7 @@ const CompareFinalise = () => {
         </div>
       </header>
 
-      <Marquee text="BLEND YOUR TASTE • DISCOVER YOUR MATCH" className="bg-primary text-primary-foreground py-3 border-y-[4px] border-border rotate-[-1deg] w-[105%] -ml-[2.5%] mt-4 shadow-[var(--shadow-card)] relative z-20" />
+      <Marquee text="BLEND YOUR TASTE • DISCOVER YOUR MATCH" className="bg-primary text-primary-foreground py-3 border-y-[4px] border-border w-[105%] -ml-[2.5%] mt-4 shadow-[var(--shadow-card)] relative z-20" />
 
       <main className="container mx-auto px-4 py-12 relative z-10">
         <Star className="top-20 left-10 text-background hidden md:block z-0" />
@@ -337,7 +337,7 @@ const CompareFinalise = () => {
           )}
           {/* Match Score Card */}
           {matchMessage && (
-            <Card className="mb-12 p-10 text-center bg-card border-[4px] border-border shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] relative overflow-visible rotate-1 hover:rotate-0 transition-transform mt-8">
+            <Card className="mb-12 p-10 text-center bg-card border-[4px] border-border shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] relative overflow-visible transition-transform mt-8">
               <Squiggle className="-top-12 -right-12 hidden md:block z-20" />
               <div className="relative space-y-8 z-10">
                 <CompatibilityAvatars
@@ -346,10 +346,10 @@ const CompareFinalise = () => {
                   score={comparisonData.scores.overall}
                 />
                 <div>
-                  <h2 className="text-5xl md:text-6xl font-black tracking-tight text-foreground mb-4 uppercase text-outline text-background inline-block -rotate-1">
+                  <h2 className="text-5xl md:text-6xl font-black tracking-tight text-foreground mb-4 uppercase text-outline text-background inline-block">
                     {matchMessage.text}
                   </h2>
-                  <p className="text-lg font-bold text-foreground/80 max-w-2xl mx-auto leading-relaxed bg-white/90 border-[2px] border-border p-4 shadow-[4px_4px_0_0_rgba(0,0,0,1)] rotate-1 mt-4">
+                  <p className="text-lg font-bold text-foreground/80 max-w-2xl mx-auto leading-relaxed bg-white/90 border-[2px] border-border p-4 shadow-[4px_4px_0_0_rgba(0,0,0,1)] mt-4">
                     {matchMessage.desc}
                   </p>
                 </div>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 interface LogoProps {
   className?: string;
@@ -38,7 +39,7 @@ export const Logo = ({ className = "", size = 32 }: LogoProps) => {
     <img
       src={logoPath}
       alt="Blend Logo"
-      className={className}
+      className={cn("drop-shadow-[0_0_2px_rgba(0,0,0,1)]", className)}
       onError={handleError}
       style={{ 
         width: sizeStyle,

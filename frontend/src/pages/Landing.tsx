@@ -53,7 +53,7 @@ const Landing = () => {
         </div>
       </header>
 
-      <Marquee text="DISCOVER YOUR YOUTUBE PERSONALITY" className="bg-primary text-primary-foreground py-3 border-y-[4px] border-border rotate-[-1deg] w-[105%] -ml-[2.5%] mt-4" />
+      <Marquee text="DISCOVER YOUR YOUTUBE PERSONALITY" className="bg-primary text-primary-foreground py-3 border-y-[4px] border-border w-[105%] -ml-[2.5%] mt-4" />
 
       {/* Hero Section */}
       <main className="container mx-auto px-4 relative z-10">
@@ -61,7 +61,7 @@ const Landing = () => {
           <Star className="top-10 left-10 text-background hidden md:block" />
           <Squiggle className="bottom-20 right-10 hidden md:block" />
           <Circle className="top-32 -right-20 hidden lg:block" />
-          <Pill className="top-20 -left-20 hidden lg:block rotate-[15deg]" />
+          <Pill className="top-20 -left-20 hidden lg:block" />
           <motion.div 
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -73,9 +73,9 @@ const Landing = () => {
               <h1 className="text-6xl md:text-8xl lg:text-[8rem] font-black tracking-tighter text-foreground uppercase leading-[0.9]">
                 What's Your
                 <br />
-                <span className="text-primary text-outline text-background inline-block -rotate-2 mt-4 hover:rotate-2 transition-transform duration-300">YouTube Vibe?</span>
+                <span className="text-primary text-outline text-background inline-block mt-4 transition-transform duration-300">YouTube Vibe?</span>
               </h1>
-              <p className="text-lg md:text-2xl font-bold bg-card border-[3px] border-border p-6 shadow-[var(--shadow-card)] max-w-2xl mx-auto leading-relaxed rotate-1">
+              <p className="text-lg md:text-2xl font-bold bg-card border-[3px] border-border p-6 shadow-[var(--shadow-card)] max-w-2xl mx-auto leading-relaxed">
                 Discover how your YouTube taste aligns with friends. Get a compatibility score, find common channels, music taste, and explore what makes your viewing habits unique.
               </p>
             </div>
@@ -103,13 +103,13 @@ const Landing = () => {
             </div>
 
             {/* Trust Message */}
-            <p className="text-sm font-bold bg-white/90 inline-block px-4 py-2 border-[2px] border-border rotate-[-1deg] shadow-[var(--shadow-button)]">
+            <p className="text-sm font-bold bg-white/90 inline-block px-4 py-2 border-[2px] border-border shadow-[var(--shadow-button)]">
               Read-only access • No data stored • Secure OAuth 2.0
             </p>
           </motion.div>
         </div>
 
-        <Marquee text="COMPARE • BLEND • DISCOVER" className="bg-secondary text-secondary-foreground py-4 border-y-[4px] border-border rotate-[2deg] w-[105%] -ml-[2.5%] mb-20 shadow-[var(--shadow-card)]" />
+        <Marquee text="COMPARE • BLEND • DISCOVER" className="bg-secondary text-secondary-foreground py-4 border-y-[4px] border-border w-[105%] -ml-[2.5%] mb-20 shadow-[var(--shadow-card)]" />
 
         {/* Features Grid */}
         <div className="py-24 relative">
@@ -162,7 +162,7 @@ const FeatureCard = ({
   title: string;
   description: string;
 }) => (
-  <div className="p-6 border-[4px] border-border bg-card shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] space-y-4 hover:translate-x-[4px] hover:translate-y-[4px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all odd:rotate-2 even:-rotate-2 z-10 relative">
+  <div className="p-6 border-[4px] border-border bg-card shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] space-y-4 hover:translate-x-[4px] hover:translate-y-[4px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all z-10 relative">
     <div className="w-16 h-16 flex items-center justify-center border-[4px] border-border bg-primary shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-full -mt-12">
       <Icon className="w-8 h-8 text-white" />
     </div>
@@ -180,7 +180,7 @@ const TrustItem = ({
   title: string;
   description: string;
 }) => (
-  <div className="flex gap-4 p-4 border-[4px] border-border bg-card shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] -rotate-1 hover:rotate-0 transition-transform">
+  <div className="flex gap-4 p-4 border-[4px] border-border bg-card shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-transform">
     <div className="flex-shrink-0">
       <div className="w-12 h-12 flex items-center justify-center border-[3px] border-border bg-secondary shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-full">
         <Icon className="w-6 h-6 text-foreground" />
