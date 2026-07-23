@@ -2,7 +2,7 @@
 
 Compare your YouTube taste with friends and discover your compatibility score instantly. 
 
-**Live:** [youtube-blend.vercel.app](https://youtube-blend.vercel.app)
+**Live:** [youtube-blend.tanmaytiwari.me](https://youtube-blend.tanmaytiwari.me)
 
 ---
 
@@ -34,7 +34,7 @@ Blend allows users to:
 | Backend | FastAPI + MongoDB |
 | Frontend | React + TypeScript + Tailwind CSS |
 | Auth | Google OAuth 2.0 |
-| Hosting | DigitalOcean (Docker Compose) • Vercel (Domain Proxy) |
+| Hosting | DigitalOcean (Docker Compose) |
 | CI/CD | GitHub Actions • Automated SSH Deployments |
 
 ---
@@ -59,7 +59,7 @@ youtube-blend/
 │   └── package.json
 │
 ├── deploy.sh                # Smart zero-downtime deploy script
-├── vercel.json              # Reverse proxy configuration
+
 └── README.md
 ```
 
@@ -126,9 +126,9 @@ bun run dev
 
 ---
 
-## Production Deployment (DigitalOcean + Vercel)
+## Production Deployment (DigitalOcean)
 
-Both frontend and backend run natively on a DigitalOcean Docker droplet. Vercel acts purely as a free reverse-proxy to attach the `youtube-blend.vercel.app` domain and handle SSL.
+Both frontend and backend run natively on a DigitalOcean Docker droplet. Caddy acts as a reverse-proxy to attach the custom domain and handle SSL.
 
 #### Step 1: Push to GitHub
 Simply merge your code to the `main` branch. 
