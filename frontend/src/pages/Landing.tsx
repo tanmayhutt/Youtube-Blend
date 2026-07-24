@@ -73,7 +73,7 @@ const Landing = () => {
               <h1 className="text-6xl md:text-8xl lg:text-[8rem] font-black tracking-tighter text-foreground uppercase leading-[0.9]">
                 Welcome to
                 <br />
-                <span className="text-primary text-outline text-background inline-block mt-4 transition-transform duration-300">Blend</span>
+                <span className="text-primary text-outline text-background inline-block mt-4 transition-transform duration-300">Youtube Blend</span>
               </h1>
               <div className="bg-card border-[3px] border-border p-6 shadow-[var(--shadow-card)] max-w-2xl mx-auto space-y-4 text-left">
                 <h3 className="font-black text-xl uppercase border-b-2 border-border pb-2">Purpose of this Application</h3>

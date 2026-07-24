@@ -63,13 +63,11 @@ echo -e "${GREEN}✅ Code up to date${NC}"
 echo -e "\n${YELLOW}[3/6] Building Docker images (using cache)...${NC}"
 export DOCKER_BUILDKIT=1
 export COMPOSE_DOCKER_CLI_BUILD=1
-docker compose build
 
 # ---------- Start containers ----------
 
 echo -e "\n${YELLOW}[4/6] Starting containers...${NC}"
-docker compose down 2>/dev/null || true
-docker compose up -d
+docker compose up -d --build
 echo -e "${GREEN}✅ Containers started${NC}"
 
 # ---------- Wait for health ----------

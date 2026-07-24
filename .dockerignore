@@ -9,3 +9,7 @@
 **/.venv/
 **/node_modules/
 **/dist/
+*.md
+*.sh
+.github/
+.vscode/
