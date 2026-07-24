@@ -31,7 +31,7 @@ const Terms = () => {
           <section>
             <h2>1. Acceptance of Terms</h2>
             <p>
-              By accessing and using Blend, you accept and agree to be bound by the terms and provision of this agreement.
+              By accessing and using Youtube Blend, you accept and agree to be bound by the terms and provision of this agreement.
               If you do not agree to these terms, please do not use our service.
             </p>
           </section>
@@ -39,7 +39,7 @@ const Terms = () => {
           <section>
             <h2>2. Description of Service</h2>
             <p>
-              Blend is a web application that allows users to compare their YouTube viewing preferences and interests with friends.
+              Youtube Blend is a web application that allows users to compare their YouTube viewing preferences and interests with friends.
               The service analyzes your YouTube subscriptions, liked videos, and playlists to generate compatibility scores.
             </p>
           </section>
@@ -47,7 +47,7 @@ const Terms = () => {
           <section>
             <h2>3. User Accounts</h2>
             <p>
-              To use Blend, you must:
+              To use Youtube Blend, you must:
             </p>
             <ul>
               <li>Have a valid Google account</li>
@@ -59,7 +59,7 @@ const Terms = () => {
           <section>
             <h2>4. Permissions and Data Access</h2>
             <p>
-              By using Blend, you grant us permission to:
+              By using Youtube Blend, you grant us permission to:
             </p>
             <ul>
               <li>Access your YouTube subscriptions, liked videos, and playlists (read-only)</li>
@@ -93,7 +93,7 @@ const Terms = () => {
           <section>
             <h2>7. Limitation of Liability</h2>
             <p>
-              Blend is provided "as is" without warranties of any kind. We are not liable for any damages arising from:
+              Youtube Blend is provided "as is" without warranties of any kind. We are not liable for any damages arising from:
             </p>
             <ul>
               <li>Use or inability to use the service</li>

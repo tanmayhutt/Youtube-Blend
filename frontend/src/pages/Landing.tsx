@@ -44,7 +44,7 @@ const Landing = () => {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Logo size={32} className="rounded" />
-            <h1 className="text-xl font-bold text-foreground">Blend</h1>
+            <h1 className="text-xl font-bold text-foreground">Youtube Blend</h1>
           </div>
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <a href="/privacy" className="hover:text-foreground transition-colors">Privacy</a>
@@ -78,8 +78,8 @@ const Landing = () => {
               <div className="bg-card border-[3px] border-border p-6 shadow-[var(--shadow-card)] max-w-2xl mx-auto space-y-4 text-left">
                 <h3 className="font-black text-xl uppercase border-b-2 border-border pb-2">Purpose of this Application</h3>
                 <p className="text-lg font-bold leading-relaxed">
-                  Blend is a fun social tool that lets you compare your YouTube taste with friends. 
-                  By securely connecting your account, Blend reads your public subscriptions to generate a compatibility score, find common channels, and explore what makes your viewing habits unique.
+                  Youtube Blend is a fun social tool that lets you compare your YouTube taste with friends. 
+                  Youtube Blend requests your Google user data (specifically, your public YouTube subscriptions and saved videos) in order to compare them with your friends, generate a compatibility score, and explore what makes your viewing habits unique.
                 </p>
               </div>
             </div>
@@ -118,7 +118,7 @@ const Landing = () => {
         {/* Features Grid */}
         <div className="py-24 relative">
           <div className="max-w-5xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-black text-foreground mb-12 text-center">How Blend Works</h2>
+            <h2 className="text-3xl md:text-4xl font-black text-foreground mb-12 text-center">How Youtube Blend Works</h2>
             <div className="grid md:grid-cols-3 gap-8">
               <FeatureCard
                 icon={Users}
