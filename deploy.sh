@@ -93,19 +93,19 @@ echo -e "${GREEN}✅ Backend is healthy${NC}"
 
 echo -e "\n${YELLOW}[6/6] Verifying services...${NC}"
 
-BACKEND_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/health 2>/dev/null || echo "000")
-FRONTEND_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/ 2>/dev/null || echo "000")
+BACKEND_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8005/health 2>/dev/null || echo "000")
+FRONTEND_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3005/ 2>/dev/null || echo "000")
 
 if [ "$BACKEND_RESPONSE" = "200" ]; then
-    echo -e "   Backend  (port 8000): ${GREEN}✅ OK${NC}"
+    echo -e "   Backend  (port 8005): ${GREEN}✅ OK${NC}"
 else
-    echo -e "   Backend  (port 8000): ${RED}❌ HTTP $BACKEND_RESPONSE${NC}"
+    echo -e "   Backend  (port 8005): ${RED}❌ HTTP $BACKEND_RESPONSE${NC}"
 fi
 
 if [ "$FRONTEND_RESPONSE" = "200" ]; then
-    echo -e "   Frontend (port 3000): ${GREEN}✅ OK${NC}"
+    echo -e "   Frontend (port 3005): ${GREEN}✅ OK${NC}"
 else
-    echo -e "   Frontend (port 3000): ${RED}❌ HTTP $FRONTEND_RESPONSE${NC}"
+    echo -e "   Frontend (port 3005): ${RED}❌ HTTP $FRONTEND_RESPONSE${NC}"
 fi
 
 # ---------- Done ----------
