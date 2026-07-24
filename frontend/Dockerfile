@@ -24,6 +24,7 @@ RUN bun install --production
 COPY --from=build /app/dist ./dist
 
 ENV PORT=3000
+ENV NODE_ENV=production
 EXPOSE 3000
 
 CMD ["bun", "run", "server.js"]
