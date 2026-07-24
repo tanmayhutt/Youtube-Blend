@@ -71,13 +71,17 @@ const Landing = () => {
             {/* Main Headline */}
             <div className="space-y-4 relative">
               <h1 className="text-6xl md:text-8xl lg:text-[8rem] font-black tracking-tighter text-foreground uppercase leading-[0.9]">
-                What's Your
+                Welcome to
                 <br />
-                <span className="text-primary text-outline text-background inline-block mt-4 transition-transform duration-300">YouTube Vibe?</span>
+                <span className="text-primary text-outline text-background inline-block mt-4 transition-transform duration-300">Blend</span>
               </h1>
-              <p className="text-lg md:text-2xl font-bold bg-card border-[3px] border-border p-6 shadow-[var(--shadow-card)] max-w-2xl mx-auto leading-relaxed">
-                Discover how your YouTube taste aligns with friends. Get a compatibility score, find common channels, music taste, and explore what makes your viewing habits unique.
-              </p>
+              <div className="bg-card border-[3px] border-border p-6 shadow-[var(--shadow-card)] max-w-2xl mx-auto space-y-4 text-left">
+                <h3 className="font-black text-xl uppercase border-b-2 border-border pb-2">Purpose of this Application</h3>
+                <p className="text-lg font-bold leading-relaxed">
+                  Blend is a fun social tool that lets you compare your YouTube taste with friends. 
+                  By securely connecting your account, Blend reads your public subscriptions to generate a compatibility score, find common channels, and explore what makes your viewing habits unique.
+                </p>
+              </div>
             </div>
 
             {/* CTA Button */}
